@@ -1,3 +1,4 @@
+import { t, useLocale } from "@/client/i18n";
 import * as React from "react";
 import { useParams } from "react-router-dom";
 import type { GuestMe, QueueItemView, QueueResponse, SearchResult, TrackInfo } from "@/shared/types";
@@ -31,6 +32,7 @@ import { api, guestFetchHeaders, joinParty } from "../http";
 import { SpotifyAttribution } from "../components/SpotifyAttribution";
 
 export function GuestPage() {
+  useLocale();
   const { slug = "" } = useParams<{ slug: string }>();
   return <GuestApp slug={slug} />;
 }
@@ -39,6 +41,7 @@ type SearchView = "idle" | "results" | "artist";
 type ArtistFilter = "songs" | "top-tracks";
 
 function GuestApp({ slug }: { slug: string }) {
+  useLocale();
   const [me, setMe] = React.useState<GuestMe | null>(null);
   const [queue, setQueue] = React.useState<QueueResponse | null>(null);
   const [query, setQuery] = React.useState("");
@@ -70,7 +73,7 @@ function GuestApp({ slug }: { slug: string }) {
         const profile = await api<typeof me>(`/parties/${slug}/me`);
         setMe(profile);
       } catch {
-        setJoinError("Could not join party");
+        setJoinError(t("guestMyInfoPage.couldNotJoinParty"));
       }
     })();
   }, [slug]);
@@ -130,7 +133,7 @@ function GuestApp({ slug }: { slug: string }) {
   async function search(searchQuery?: string) {
     const trimmed = (searchQuery ?? query).trim();
     if (trimmed.length < 3) {
-      showPopup("Enter at least 3 characters to search.", "info");
+      showPopup(t("adminPage.enterAtLeast3CharactersToSearch"), "info");
       return;
     }
     if (searchQuery) setQuery(searchQuery);
@@ -170,7 +173,7 @@ function GuestApp({ slug }: { slug: string }) {
       const tracks = data?.tracks;
 
       if (loadId !== artistLoadRef.current) return;
-      if (!tracks) throw new Error("Could not load tracks");
+      if (!tracks) throw new Error(t("adminPage.couldNotLoadTracks"));
 
       setResults({
         tracks,
@@ -196,7 +199,7 @@ function GuestApp({ slug }: { slug: string }) {
       etagRef.current = null;
       const profile = await api<typeof me>(`/parties/${slug}/me`);
       setMe(profile);
-      showPopup(`Added “${track.name}” to the queue`, "success");
+      showPopup(t("guestPage.addedToTheQueue", { name: track.name }), "success");
     } catch (e) {
       showPopup(formatApiError(e), "error");
     }
@@ -265,7 +268,9 @@ function GuestApp({ slug }: { slug: string }) {
   if (!joined) {
     return (
       <div className="app">
-        <p>Joining party…</p>
+        <p>
+          {t("common.joiningParty")}
+        </p>
         {joinError && <p className="error">{joinError}</p>}
       </div>
     );
@@ -277,7 +282,7 @@ function GuestApp({ slug }: { slug: string }) {
 
   return (
     <div className="app">
-      <h1>{queue?.party.name ?? "Jukebox"}</h1>
+      <h1>{queue?.party.name ?? t("common.jukebox")}</h1>
 
       <GuestNav
         slug={slug}
@@ -285,7 +290,9 @@ function GuestApp({ slug }: { slug: string }) {
       />
 
       {partyOff && (
-        <div className="banner off">Party is paused — queue is view only.</div>
+        <div className="banner off">
+          {t("guestPage.partyIsPausedQueueIsViewOnly")}
+        </div>
       )}
 
       {!showingSearch && (queue?.nowPlaying || upNext) && (
@@ -306,13 +313,15 @@ function GuestApp({ slug }: { slug: string }) {
       )}
 
       <div className="card guest-search-hero">
-        <h2 className="guest-search-heading">Search</h2>
+        <h2 className="guest-search-heading">
+          {t("common.search")}
+        </h2>
         <div className="row guest-search-row">
           <input
             className="guest-search-input"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search songs or artists"
+            placeholder={t("guestPage.searchSongsOrArtists")}
             onKeyDown={(e) => e.key === "Enter" && void search()}
           />
           <button
@@ -320,12 +329,12 @@ function GuestApp({ slug }: { slug: string }) {
             onClick={() => void search()}
             disabled={partyOff || searching || query.trim().length < 3}
           >
-            {searching ? "Searching…" : "Search"}
+            {searching ? t("common.searching") : t("common.search")}
           </button>
         </div>
         {showingSearch && (
           <SearchNav
-            label={searchView === "artist" ? "Back to search" : "Back to queue"}
+            label={searchView === "artist" ? t("common.backToSearch") : t("common.backToQueue")}
             onBack={() => {
               if (searchView === "artist") {
                 void search();
@@ -339,7 +348,7 @@ function GuestApp({ slug }: { slug: string }) {
           <div style={{ marginTop: "1rem" }}>
             {searchView === "results" && results.artists.length > 0 && (
               <div style={{ marginBottom: "1rem" }}>
-                <strong>Artists</strong>
+                <strong>{t("adminPage.artists")}</strong>
                 {results.artists.map((a) => (
                   <div key={a.id} className="artist-row">
                     <button
@@ -353,12 +362,12 @@ function GuestApp({ slug }: { slug: string }) {
                       filters={[
                         {
                           id: "songs",
-                          label: "Songs",
+                          label: t("common.songs"),
                           onClick: () => void loadArtistFilter(a.id, a.name, "songs"),
                         },
                         {
                           id: "top-tracks",
-                          label: "Top tracks",
+                          label: t("common.topTracks"),
                           onClick: () =>
                             void loadArtistFilter(a.id, a.name, "top-tracks"),
                         },
@@ -377,7 +386,7 @@ function GuestApp({ slug }: { slug: string }) {
                   filters={[
                     {
                       id: "songs",
-                      label: "Songs",
+                      label: t("common.songs"),
                       active: artistFilter === "songs",
                       onClick: () =>
                         void loadArtistFilter(
@@ -388,7 +397,7 @@ function GuestApp({ slug }: { slug: string }) {
                     },
                     {
                       id: "top-tracks",
-                      label: "Top tracks",
+                      label: t("common.topTracks"),
                       active: artistFilter === "top-tracks",
                       onClick: () =>
                         void loadArtistFilter(
@@ -422,16 +431,22 @@ function GuestApp({ slug }: { slug: string }) {
       </div>
 
       {queue == null && !showingSearch && (
-        <p className="small guest-queue-loading">Loading queue…</p>
+        <p className="small guest-queue-loading">
+          {t("guestPage.loadingQueue")}
+        </p>
       )}
 
       {queue != null && !queue.nowPlaying && !upNext && !showingSearch && (
-        <div className="banner warn">Add something!</div>
+        <div className="banner warn">
+          {t("common.addSomething")}
+        </div>
       )}
 
       {!showingSearch && hasLater && (
         <section>
-          <h2>Later</h2>
+          <h2>
+            {t("guestPage.later")}
+          </h2>
           {later.map((item) => (
             <QueueRow
               key={item.id}
@@ -489,6 +504,7 @@ function QueueRowActions({
   onAction: (path: string) => Promise<void>;
   slug: string;
 }) {
+  useLocale();
   const isOwn = guestId != null && item.addedByGuestId === guestId;
   const upvoteDisabled =
     !canMutate ||
@@ -513,7 +529,7 @@ function QueueRowActions({
       showPopup(downvoteBlockedMessage(item, canMutate, downvotesLeft), "info");
       return;
     }
-    if (isOwn && !confirm("You're about to downvote a song you added. Continue?")) {
+    if (isOwn && !confirm(t("guestPage.youReAboutToDownvoteASongYou"))) {
       return;
     }
     await onAction(`/parties/${slug}/queue/${item.id}/downvote`);
@@ -546,7 +562,7 @@ function QueueRowActions({
       <button
         type="button"
         className={`secondary upvote-action${upvoteDisabled ? " upvote-action--disabled" : ""}`}
-        aria-label="Upvote"
+        aria-label={t("guestPage.upvote")}
         aria-disabled={upvoteDisabled}
         onClick={handleUpvote}
       >
@@ -555,7 +571,7 @@ function QueueRowActions({
       <button
         type="button"
         className={`secondary downvote-action${downvoteDisabled ? " downvote-action--disabled" : ""}`}
-        aria-label="Downvote"
+        aria-label={t("guestPage.downvote")}
         aria-disabled={downvoteDisabled}
         onClick={() => void downvote()}
       >
@@ -591,6 +607,7 @@ function QueueRow({
   slug: string;
   highlightedItemId?: string | null;
 }) {
+  useLocale();
   return (
     <div
       id={`queue-item-${item.id}`}

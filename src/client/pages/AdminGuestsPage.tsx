@@ -1,3 +1,4 @@
+import { t, useLocale } from "@/client/i18n";
 import * as React from "react";
 import { Link } from "react-router-dom";
 import type { GuestAdminView, PartyView } from "@/shared/types";
@@ -13,6 +14,7 @@ interface PartyFull extends PartyView {
 }
 
 export function AdminGuestsPage() {
+  useLocale();
   const [party, setParty] = React.useState<PartyFull | null>(null);
   const [guests, setGuests] = React.useState<GuestAdminView[]>([]);
   const [error, setError] = React.useState<string | null>(null);
@@ -31,7 +33,7 @@ export function AdminGuestsPage() {
         setGuests([]);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
+      setError(e instanceof Error ? formatApiError(e) : t("common.failedToLoad"));
     }
   }, []);
 
@@ -43,10 +45,10 @@ export function AdminGuestsPage() {
 
   async function resetLimits(guest: GuestAdminView) {
     if (!party) return;
-    const label = guest.displayName ?? "this guest";
+    const label = guest.displayName ?? t("adminGuestsPage.thisGuest");
     if (
       !confirm(
-        `Reset limits for ${label}?\n\nThey can add, upvote, downvote, and boost again. Any active boosts on their songs are removed so the queue can resync.`,
+        t("adminGuestsPage.resetLimitsForTheyCanAddUpvoteDownvote", { label }),
       )
     ) {
       return;
@@ -80,7 +82,7 @@ export function AdminGuestsPage() {
     if (!party) return;
     if (
       !confirm(
-        `Remove all ${guests.length} guest(s)?\n\nTheir sessions, votes, and downvotes will be cleared. Songs they added stay in the queue.`,
+        t("adminGuestsPage.removeAllGuestSTheirSessionsVotesAnd", { length: guests.length }),
       )
     ) {
       return;
@@ -98,16 +100,18 @@ export function AdminGuestsPage() {
 
   return (
     <div className="app admin-guests-page">
-      <h1>Jukebox Admin</h1>
+      <h1>
+        {t("adminGuestsPage.jukeboxAdmin")}
+      </h1>
       <AdminNav guestCount={guestCount} partyActive={!!party} />
       {error && <p className="error">{error}</p>}
 
       {!party ? (
         <div className="card">
-          <p>No active party.</p>
-          <Link to="/admin" className="admin-back-link">
-            ← Back to admin
-          </Link>
+          <p>
+            {t("adminGuestsPage.noActiveParty")}
+          </p>
+          <Link to="/admin" className="admin-back-link">{t("common.backToAdmin")}</Link>
         </div>
       ) : (
         <div className="card">

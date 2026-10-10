@@ -1,19 +1,38 @@
+import { t, Trans, useLocale } from "@/client/i18n";
 export function HomePage() {
+  useLocale();
   return (
     <div className="app">
-      <h1>Jukebox</h1>
-      <p>Party queue for Spotify — guests vote on what plays next.</p>
+      <h1>
+        {t("common.jukebox")}
+      </h1>
+      <p>
+        {t("homePage.partyQueueForSpotifyGuestsVoteOnWhat")}
+      </p>
       <div className="card">
-        <h2>Host</h2>
+        <h2>
+          {t("homePage.host")}
+        </h2>
         <p>
-          <a href="/admin">Open admin</a> to connect Spotify and run a party.
+          <Trans
+            message="homePage.toConnectSpotifyAndRunAParty"
+            values={{
+              adminLink: <a href="/admin">{t("homePage.openAdmin")}</a>,
+            }}
+          />
         </p>
       </div>
       <div className="card">
-        <h2>Guest</h2>
+        <h2>
+          {t("homePage.guest")}
+        </h2>
         <p className="small">
-          Open the link or scan the QR code your host shared (looks like{" "}
-          <code>/p/your-party</code>).
+          <Trans
+            message="homePage.openTheLinkOrScanTheQrCode"
+            values={{
+              exampleLink: <code>{t("homePage.pYourParty")}</code>,
+            }}
+          />
         </p>
       </div>
     </div>

@@ -1,32 +1,10 @@
+import { t, useLocale } from "@/client/i18n";
 import * as React from "react";
 import {
   ThumbsDownIcon,
   ThumbsUpIcon,
 } from "./QueueUi";
 import { api } from "../http";
-
-const STEPS = [
-  {
-    title: "Upvote songs you like",
-    body: "Tap the thumbs up on someone else's track to bump it higher in the queue.",
-    icon: <ThumbsUpIcon size={28} />,
-  },
-  {
-    title: "Downvote to skip",
-    body: "Tap thumbs down on a track you don't want to hear. Enough downvotes skip it for everyone.",
-    icon: <ThumbsDownIcon size={28} />,
-  },
-  {
-    title: "Boost once per party",
-    body: "Use your one boost to jump a song into the fast lane — higher upvotes play sooner there.",
-    icon: <span className="boost-badge">Boost</span>,
-  },
-  {
-    title: "See what you've played",
-    body: "Open My Info anytime to track your songs — what's queued, what's played, and your boosts and limits.",
-    icon: <span className="guest-tutorial-nav-pill">My Info</span>,
-  },
-] as const;
 
 export function GuestTutorial({
   slug,
@@ -35,6 +13,30 @@ export function GuestTutorial({
   slug: string;
   onDismiss: () => void;
 }) {
+  useLocale();
+  const STEPS = [
+    {
+      title: t("guestTutorial.upvoteSongsYouLike"),
+      body: t("guestTutorial.upvoteBody"),
+      icon: <ThumbsUpIcon size={28} />,
+    },
+    {
+      title: t("guestTutorial.downvoteToSkip"),
+      body: t("guestTutorial.downvoteBody"),
+      icon: <ThumbsDownIcon size={28} />,
+    },
+    {
+      title: t("guestTutorial.boostOncePerParty"),
+      body: t("guestTutorial.boostBody"),
+      icon: <span className="boost-badge">{t("common.boost")}</span>,
+    },
+    {
+      title: t("guestTutorial.seeWhatYouVePlayed"),
+      body: t("guestTutorial.infoBody"),
+      icon: <span className="guest-tutorial-nav-pill">{t("guestTutorial.myInfo")}</span>,
+    },
+  ] as const;
+
   const [step, setStep] = React.useState(0);
   const [saving, setSaving] = React.useState(false);
 
@@ -61,7 +63,7 @@ export function GuestTutorial({
     <div className="guest-tutorial-overlay" role="dialog" aria-modal="true">
       <div className="guest-tutorial-sheet card">
         <p className="small guest-tutorial-progress">
-          Step {step + 1} of {STEPS.length}
+          {t("guestTutorial.stepOf", { step: step + 1, length: STEPS.length })}
         </p>
         <div className="guest-tutorial-icon">{current.icon}</div>
         <h2>{current.title}</h2>
@@ -73,16 +75,14 @@ export function GuestTutorial({
             onClick={() => void dismiss()}
             disabled={saving}
           >
-            Skip
+            {t("guestTutorial.skip")}
           </button>
           {isLast ? (
             <button type="button" onClick={() => void dismiss()} disabled={saving}>
-              {saving ? "Saving…" : "Got it"}
+              {saving ? t("common.saving") : t("guestTutorial.gotIt")}
             </button>
           ) : (
-            <button type="button" onClick={() => setStep((s) => s + 1)}>
-              Next
-            </button>
+            <button type="button" onClick={() => setStep((s) => s + 1)}>{t("guestTutorial.next")}</button>
           )}
         </div>
       </div>

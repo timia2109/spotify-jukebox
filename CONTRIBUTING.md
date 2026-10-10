@@ -136,6 +136,55 @@ Tests use in-memory SQLite and mock Spotify clients — no running containers re
 
 ---
 
+## Frontend localization
+
+All application-owned UI copy lives in [`src/client/i18n/locales/en.ts`](src/client/i18n/locales/en.ts).
+Components, dialogs, placeholders, accessible labels, and notifications use typed
+translation keys. English is the default and fallback language.
+
+To add a language:
+
+1. Copy the `en` message object into `src/client/i18n/locales/<language>.ts`, rename
+   the export, and translate the values. Keep keys and `{placeholder}` names intact.
+   Use `satisfies Dictionary` (imported as a type from `../core`) to check completeness.
+2. Import that dictionary in `src/client/i18n/index.tsx` and add it to `dictionaries`,
+   for example `{ en, de }`.
+3. The app picks the first supported browser language, including regional codes
+   such as `de-DE`. A saved preference takes priority. Call `setLocale("de")` from
+   a language control to update the UI, document language/title, and saved preference.
+
+Use `t("common.search")` for a plain string and `t(key, { name, count })` for
+interpolation. Keep complete sentences in the catalogue rather than concatenating
+translated words. Numeric placeholders and date/time formatting use the active locale.
+Plural entries contain `one`, `other`, and optionally the language's `zero`, `two`,
+`few`, or `many` forms; pass a numeric `count` so `Intl.PluralRules` chooses the form.
+
+Use `Trans` for messages containing links, emphasis, or other React elements:
+
+```tsx
+<Trans
+  message="guestNamePrompt.someoneNamedIsAlreadyHereIsThatYou"
+  values={{ name: <strong>{displayName}</strong> }}
+/>
+```
+
+Translators can move `{name}` within the sentence. React escapes text values; no
+translated HTML is injected. Components that call `t` or locale formatters subscribe
+with `useLocale()` so changing the language updates them without resetting state.
+
+Existing API error codes and known English server messages are localized centrally
+in `src/client/i18n/errors.ts`. Legacy wire-message patterns stay in the English
+source file; do not translate those patterns. User content (track/artist/party/guest
+names), URLs, technical diagnostic identifiers, and unknown external diagnostic
+messages are preserved as data.
+
+`tests/unit/localization.test.ts` checks interpolation, plural forms, rich messages,
+legacy API messages, required placeholders, and prevents hardcoded JSX copy and
+accessible labels from returning. Run the usual typecheck and test commands after
+adding messages or languages.
+
+---
+
 ## Continuous integration
 
 [![CI](https://github.com/currand/spotify-jukebox/actions/workflows/ci.yml/badge.svg)](https://github.com/currand/spotify-jukebox/actions/workflows/ci.yml)

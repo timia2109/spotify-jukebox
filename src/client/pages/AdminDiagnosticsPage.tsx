@@ -1,3 +1,5 @@
+import { localizeMessage } from "../i18n/errors";
+import { t, Trans, formatNumber, getLocale, useLocale } from "@/client/i18n";
 import * as React from "react";
 import { Link } from "react-router-dom";
 import type {
@@ -18,46 +20,47 @@ interface PartyFull extends PartyView {
 }
 
 function formatDuration(ms: number): string {
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
-  return `${(ms / 3_600_000).toFixed(1)}h`;
+  if (ms < 60_000) return t("common.duration.seconds", { value: formatNumber(Math.round(ms / 1000)) });
+  if (ms < 3_600_000) return t("common.duration.minutes", { value: formatNumber(Math.round(ms / 60_000)) });
+  return t("common.duration.hours", { value: formatNumber(ms / 3_600_000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) });
 }
 
 function formatTime(at: number | null): string {
   if (at == null) return "—";
-  return new Date(at).toLocaleTimeString();
+  return new Date(at).toLocaleTimeString(getLocale());
 }
 
 function formatMinuteTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, {
+  return new Date(iso).toLocaleTimeString(getLocale(), {
     hour: "numeric",
     minute: "2-digit",
   });
 }
 
 function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString();
+  return new Date(iso).toLocaleString(getLocale());
 }
 
 function formatPercent(rate: number): string {
-  return `${Math.round(rate * 100)}%`;
+  return formatNumber(rate, { style: "percent", maximumFractionDigits: 0 });
 }
 
 function sourceLabel(
   source: HostDiagnostics["search"]["recent"][number]["source"],
 ): string {
-  if (source === "prefetch") return "prefetch";
-  if (source === "host") return "host";
-  return "guest";
+  if (source === "prefetch") return t("adminDiagnosticsPage.prefetch");
+  if (source === "host") return t("adminDiagnosticsPage.host");
+  return t("adminDiagnosticsPage.guest");
 }
 
 function reasonLabel(reason: MetricsSnapshotSummary["reason"]): string {
   if (reason === "rate_limit") return "429";
-  if (reason === "startup") return "start";
-  return "tick";
+  if (reason === "startup") return t("adminDiagnosticsPage.start");
+  return t("adminDiagnosticsPage.tick");
 }
 
 function DiagnosticsPanels({ diagnostics }: { diagnostics: HostDiagnostics }) {
+  useLocale();
   const endpointRows = Object.entries(diagnostics.spotifyApi.byEndpointLast5m).sort(
     (a, b) => b[1] - a[1],
   );
@@ -71,38 +74,56 @@ function DiagnosticsPanels({ diagnostics }: { diagnostics: HostDiagnostics }) {
   return (
     <div className="diagnostics-grid">
       <section className="card diagnostics-card">
-        <h2>Spotify API</h2>
+        <h2>
+          {t("adminDiagnosticsPage.spotifyApi")}
+        </h2>
         <p className="diagnostics-stat-line">
-          <strong>{diagnostics.spotifyApi.last5m}</strong> calls in last 5m ·{" "}
-          <strong>{diagnostics.spotifyApi.last1m}</strong> in last 1m ·{" "}
-          <strong>{diagnostics.spotifyApi.last24h}</strong> in last 24h ·{" "}
-          <strong>{diagnostics.spotifyApi.total}</strong> since start
+          <Trans
+            message="adminDiagnosticsPage.callsInLast5mInLast1mIn"
+            values={{
+              calls5m: <strong>{diagnostics.spotifyApi.last5m}</strong>,
+              calls1m: <strong>{diagnostics.spotifyApi.last1m}</strong>,
+              calls24h: <strong>{diagnostics.spotifyApi.last24h}</strong>,
+              totalCalls: <strong>{diagnostics.spotifyApi.total}</strong>,
+            }}
+          />
         </p>
         {diagnostics.spotifyApi.dailyWarnExceeded && (
           <p className="small diagnostics-error">
-            24h call count exceeds soft threshold (
-            {diagnostics.spotifyApi.dailyWarnCalls?.toLocaleString()}). You may be
-            approaching Spotify&apos;s daily quota — expect long Retry-After values.
+            {t("adminDiagnosticsPage.24hCallCountExceedsSoftThresholdYouMay", { toLocaleString: diagnostics.spotifyApi.dailyWarnCalls?.toLocaleString(getLocale()) })}
           </p>
         )}
         <p className="small">
-          Uptime {formatDuration(diagnostics.uptimeMs)} ·{" "}
-          {diagnostics.spotifyApi.rateLimitCount} rate limits ·{" "}
-          {diagnostics.spotifyApi.prefetchApiCalls} prefetch API calls
-          {diagnostics.spotifyApi.last429At != null
-            ? ` · last 429 at ${formatTime(diagnostics.spotifyApi.last429At)}`
-            : ""}
+          <Trans
+            message="adminDiagnosticsPage.uptimeRateLimitsPrefetchApiCalls"
+            values={{
+              uptimeMs: formatDuration(diagnostics.uptimeMs),
+              rateLimitCount: diagnostics.spotifyApi.rateLimitCount,
+              prefetchApiCalls: diagnostics.spotifyApi.prefetchApiCalls,
+              last429At: diagnostics.spotifyApi.last429At != null
+              ? t("adminDiagnosticsPage.last429", { time: formatTime(diagnostics.spotifyApi.last429At) })
+              : "",
+            }}
+          />
         </p>
         <p className="small">
-          Global budget: {budget.used}/{budget.limit} in{" "}
-          {formatDuration(budget.windowMs)} window
-          {budget.resetsInMs > 0
-            ? ` · resets in ${formatDuration(budget.resetsInMs)}`
-            : ""}
+          <Trans
+            message="adminDiagnosticsPage.globalBudgetInWindow"
+            values={{
+              used: budget.used,
+              limit: budget.limit,
+              windowMs: formatDuration(budget.windowMs),
+              resetsInMs: budget.resetsInMs > 0
+              ? t("adminDiagnosticsPage.resetsIn", { resetsInMs: formatDuration(budget.resetsInMs) })
+              : "",
+            }}
+          />
         </p>
         {callerRows.length > 0 && (
           <>
-            <h3 className="diagnostics-subhead">By caller (5m)</h3>
+            <h3 className="diagnostics-subhead">
+              {t("adminDiagnosticsPage.byCaller5m")}
+            </h3>
             <ul className="diagnostics-list">
               {callerRows.map(([caller, count]) => (
                 <li key={caller}>
@@ -114,7 +135,9 @@ function DiagnosticsPanels({ diagnostics }: { diagnostics: HostDiagnostics }) {
         )}
         {endpointRows.length > 0 ? (
           <>
-            <h3 className="diagnostics-subhead">By endpoint (5m)</h3>
+            <h3 className="diagnostics-subhead">
+              {t("adminDiagnosticsPage.byEndpoint5m")}
+            </h3>
             <ul className="diagnostics-list">
               {endpointRows.map(([endpoint, count]) => (
                 <li key={endpoint}>
@@ -124,20 +147,31 @@ function DiagnosticsPanels({ diagnostics }: { diagnostics: HostDiagnostics }) {
             </ul>
           </>
         ) : (
-          <p className="small">No Spotify calls in the last 5 minutes.</p>
+          <p className="small">
+            {t("adminDiagnosticsPage.noSpotifyCallsInTheLast5Minutes")}
+          </p>
         )}
         {recentCalls.length > 0 && (
           <details className="diagnostics-details">
-            <summary>Recent API calls ({recentCalls.length})</summary>
+            <summary>
+              {t("adminDiagnosticsPage.recentApiCalls", { length: recentCalls.length })}
+            </summary>
             <ul className="diagnostics-list diagnostics-api-list">
               {recentCalls.map((call, index) => (
                 <li key={`${call.at}-${call.path}-${index}`}>
                   <span className="diagnostics-search-meta">
-                    {formatTime(call.at)} · {call.caller} · {call.status} ·{" "}
-                    {call.elapsedMs}ms
-                    {call.retryAfterMs != null
-                      ? ` · retry ${formatDuration(call.retryAfterMs)}`
-                      : ""}
+                    <Trans
+                      message="adminDiagnosticsPage.ms"
+                      values={{
+                        at: formatTime(call.at),
+                        caller: call.caller,
+                        status: call.status,
+                        elapsedMs: call.elapsedMs,
+                        retryAfterMs: call.retryAfterMs != null
+                        ? t("adminDiagnosticsPage.retry", { duration: formatDuration(call.retryAfterMs) })
+                        : "",
+                      }}
+                    />
                   </span>
                   <code>{call.endpoint}</code>
                 </li>
@@ -147,12 +181,13 @@ function DiagnosticsPanels({ diagnostics }: { diagnostics: HostDiagnostics }) {
         )}
         {rateLimits.length > 0 && (
           <details className="diagnostics-details">
-            <summary>429 timeline ({rateLimits.length})</summary>
+            <summary>
+              {t("adminDiagnosticsPage.429Timeline", { length: rateLimits.length })}
+            </summary>
             <ul className="diagnostics-list">
               {rateLimits.map((entry, index) => (
                 <li key={`${entry.at}-${index}`}>
-                  {formatTime(entry.at)} · {entry.caller} · Retry-After{" "}
-                  {formatDuration(entry.retryAfterMs)}
+                  {t("adminDiagnosticsPage.retryAfter", { at: formatTime(entry.at), caller: entry.caller, retryAfterMs: formatDuration(entry.retryAfterMs) })}
                 </li>
               ))}
             </ul>
@@ -161,22 +196,33 @@ function DiagnosticsPanels({ diagnostics }: { diagnostics: HostDiagnostics }) {
       </section>
 
       <section className="card diagnostics-card">
-        <h2>Search activity</h2>
+        <h2>
+          {t("adminDiagnosticsPage.searchActivity")}
+        </h2>
         <p className="diagnostics-stat-line">
-          <strong>{formatPercent(diagnostics.search.hitRate)}</strong> cache hit rate ·{" "}
-          <strong>{diagnostics.search.prefetchCount}</strong> prefetches
+          <Trans
+            message="adminDiagnosticsPage.cacheHitRatePrefetches"
+            values={{
+              hitRate: <strong>{formatPercent(diagnostics.search.hitRate)}</strong>,
+              prefetches: <strong>{diagnostics.search.prefetchCount}</strong>,
+            }}
+          />
         </p>
         <p className="small">
-          {diagnostics.search.total} lookups · {diagnostics.search.cacheHits} hits ·{" "}
-          {diagnostics.search.cacheMisses} misses
+          {t("adminDiagnosticsPage.lookupsHitsMisses", { total: diagnostics.search.total, cacheHits: diagnostics.search.cacheHits, cacheMisses: diagnostics.search.cacheMisses })}
         </p>
         {diagnostics.partySearchBudget && (
           <p className="small">
-            Party search budget: {diagnostics.partySearchBudget.used}/
-            {diagnostics.partySearchBudget.limit}
-            {diagnostics.partySearchBudget.resetsInMs > 0
-              ? ` · resets in ${formatDuration(diagnostics.partySearchBudget.resetsInMs)}`
-              : ""}
+            <Trans
+              message="adminDiagnosticsPage.partySearchBudget"
+              values={{
+                used: diagnostics.partySearchBudget.used,
+                limit: diagnostics.partySearchBudget.limit,
+                resetsInMs: diagnostics.partySearchBudget.resetsInMs > 0
+                ? t("adminDiagnosticsPage.resetsIn", { resetsInMs: formatDuration(diagnostics.partySearchBudget.resetsInMs) })
+                : "",
+              }}
+            />
           </p>
         )}
         {diagnostics.search.recent.length > 0 ? (
@@ -186,31 +232,49 @@ function DiagnosticsPanels({ diagnostics }: { diagnostics: HostDiagnostics }) {
                 <span className="diagnostics-search-query">"{event.query}"</span>
                 <span className="diagnostics-search-meta">
                   {sourceLabel(event.source)} · {event.kind} ·{" "}
-                  {event.cacheHit ? "cache hit" : "miss"} · {formatTime(event.at)}
+                  {event.cacheHit ? t("adminDiagnosticsPage.cacheHit") : t("adminDiagnosticsPage.cacheMiss")} · {formatTime(event.at)}
                 </span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="small">No searches in this snapshot.</p>
+          <p className="small">
+            {t("adminDiagnosticsPage.noSearchesInThisSnapshot")}
+          </p>
         )}
       </section>
 
       <section className="card diagnostics-card">
-        <h2>Cache</h2>
+        <h2>
+          {t("adminDiagnosticsPage.cache")}
+        </h2>
         <p className="diagnostics-stat-line">
-          <strong>{diagnostics.cache.searchQueries.count}</strong> search queries ·{" "}
-          <strong>{diagnostics.cache.artistTracks.count}</strong> artist track caches ·{" "}
-          <strong>{diagnostics.cache.trackMetadata.count}</strong> track metadata
+          <Trans
+            message="adminDiagnosticsPage.searchQueriesArtistTrackCachesTrackMetadata"
+            values={{
+              searchQueries: <strong>{diagnostics.cache.searchQueries.count}</strong>,
+              artistCaches: <strong>{diagnostics.cache.artistTracks.count}</strong>,
+              trackMetadata: <strong>{diagnostics.cache.trackMetadata.count}</strong>,
+            }}
+          />
         </p>
         {diagnostics.cache.searchQueries.samples.length > 0 && (
           <>
-            <h3 className="diagnostics-subhead">Cached searches</h3>
+            <h3 className="diagnostics-subhead">
+              {t("adminDiagnosticsPage.cachedSearches")}
+            </h3>
             <ul className="diagnostics-list">
               {diagnostics.cache.searchQueries.samples.map((entry) => (
                 <li key={entry.query}>
-                  <code>{entry.query}</code> · {entry.trackCount} tracks ·{" "}
-                  {entry.artistCount} artists · TTL {formatDuration(entry.expiresInMs)}
+                  <Trans
+                    message="adminDiagnosticsPage.tracksArtistsTtl"
+                    values={{
+                      code: <code>{entry.query}</code>,
+                      trackCount: entry.trackCount,
+                      artistCount: entry.artistCount,
+                      expiresInMs: formatDuration(entry.expiresInMs),
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -218,12 +282,20 @@ function DiagnosticsPanels({ diagnostics }: { diagnostics: HostDiagnostics }) {
         )}
         {diagnostics.cache.artistTracks.samples.length > 0 && (
           <>
-            <h3 className="diagnostics-subhead">Cached artist tracks</h3>
+            <h3 className="diagnostics-subhead">
+              {t("adminDiagnosticsPage.cachedArtistTracks")}
+            </h3>
             <ul className="diagnostics-list">
               {diagnostics.cache.artistTracks.samples.map((entry) => (
                 <li key={entry.artistId}>
-                  <code>{entry.artistId}</code> · {entry.trackCount} tracks · TTL{" "}
-                  {formatDuration(entry.expiresInMs)}
+                  <Trans
+                    message="adminDiagnosticsPage.tracksTtl"
+                    values={{
+                      code: <code>{entry.artistId}</code>,
+                      trackCount: entry.trackCount,
+                      expiresInMs: formatDuration(entry.expiresInMs),
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -232,28 +304,40 @@ function DiagnosticsPanels({ diagnostics }: { diagnostics: HostDiagnostics }) {
       </section>
 
       <section className="card diagnostics-card">
-        <h2>Sync worker</h2>
+        <h2>
+          {t("adminDiagnosticsPage.syncWorker")}
+        </h2>
         <p className="diagnostics-stat-line">
-          {diagnostics.sync.spotifyReachable ? "Spotify reachable" : "Spotify unreachable"}
-          {diagnostics.sync.deviceName ? ` · ${diagnostics.sync.deviceName}` : ""}
+          {diagnostics.sync.spotifyReachable ? t("statPanels.spotifyReachable") : t("adminDiagnosticsPage.spotifyUnreachable")}
+          {diagnostics.sync.deviceName ? t("adminDiagnosticsPage.deviceName", { name: diagnostics.sync.deviceName }) : ""}
         </p>
         <p className="small">
-          Device {diagnostics.sync.deviceActive ? "active" : "inactive"}
-          {diagnostics.sync.deviceRestricted ? " · restricted device" : ""}
-          {diagnostics.sync.deviceMismatch ? " · transferring device" : ""}
+          <Trans
+            message="adminDiagnosticsPage.device"
+            values={{
+              deviceActive: diagnostics.sync.deviceActive ? t("adminDiagnosticsPage.active") : t("adminDiagnosticsPage.inactive"),
+              deviceRestricted: diagnostics.sync.deviceRestricted ? t("adminDiagnosticsPage.restrictedDevice") : "",
+              deviceMismatch: diagnostics.sync.deviceMismatch ? t("adminDiagnosticsPage.transferringDevice") : "",
+            }}
+          />
         </p>
         <p className="small">
-          Last sync {formatTime(diagnostics.sync.lastSyncedAt)}
-          {diagnostics.sync.retryAfterMs != null && diagnostics.sync.retryAfterMs > 0
-            ? ` · rate limited ${formatDuration(diagnostics.sync.retryAfterMs)}`
-            : ""}
-          {diagnostics.sync.deviceTransferRetryAfterMs != null &&
-          diagnostics.sync.deviceTransferRetryAfterMs > 0
-            ? ` · transfer retry ${formatDuration(diagnostics.sync.deviceTransferRetryAfterMs)}`
-            : ""}
+          <Trans
+            message="adminDiagnosticsPage.lastSync"
+            values={{
+              lastSyncedAt: formatTime(diagnostics.sync.lastSyncedAt),
+              retryAfterMs: diagnostics.sync.retryAfterMs != null && diagnostics.sync.retryAfterMs > 0
+              ? t("adminDiagnosticsPage.rateLimited", { retryAfterMs: formatDuration(diagnostics.sync.retryAfterMs) })
+              : "",
+              deviceTransferRetryAfterMs: diagnostics.sync.deviceTransferRetryAfterMs != null &&
+              diagnostics.sync.deviceTransferRetryAfterMs > 0
+                ? t("adminDiagnosticsPage.transferRetry", { deviceTransferRetryAfterMs: formatDuration(diagnostics.sync.deviceTransferRetryAfterMs) })
+                : "",
+            }}
+          />
         </p>
-        {diagnostics.sync.lastError && (
-          <p className="small diagnostics-error">{diagnostics.sync.lastError}</p>
+        {localizeMessage(diagnostics.sync.lastError) && (
+          <p className="small diagnostics-error">{localizeMessage(diagnostics.sync.lastError)}</p>
         )}
       </section>
     </div>
@@ -261,6 +345,7 @@ function DiagnosticsPanels({ diagnostics }: { diagnostics: HostDiagnostics }) {
 }
 
 export function AdminDiagnosticsPage() {
+  useLocale();
   const [party, setParty] = React.useState<PartyFull | null>(null);
   const [liveDiagnostics, setLiveDiagnostics] = React.useState<HostDiagnostics | null>(
     null,
@@ -370,7 +455,9 @@ export function AdminDiagnosticsPage() {
 
   return (
     <div className="app admin-diagnostics-page">
-      <h1>Stats</h1>
+      <h1>
+        {t("common.stats")}
+      </h1>
       <AdminNav guestCount={party?.guestCount ?? 0} partyActive={!!party} />
       {error && <p className="error">{error}</p>}
 
@@ -384,66 +471,78 @@ export function AdminDiagnosticsPage() {
               setSelectedSessionId(null);
             }}
           >
-            Live
+            {t("adminDiagnosticsPage.live")}
           </button>
           <label className="small diagnostics-session-select">
-            Session{" "}
-            <select
-              value={viewMode === "history" ? (selectedSessionId ?? "") : ""}
-              onChange={(e) => {
-                const sessionId = e.target.value;
-                if (!sessionId) {
-                  setViewMode("live");
-                  setSelectedSessionId(null);
-                  return;
-                }
-                setViewMode("history");
-                setSelectedSessionId(sessionId);
+            <Trans
+              message="adminDiagnosticsPage.session"
+              values={{
+                select: <select
+                  value={viewMode === "history" ? (selectedSessionId ?? "") : ""}
+                  onChange={(e) => {
+                    const sessionId = e.target.value;
+                    if (!sessionId) {
+                      setViewMode("live");
+                      setSelectedSessionId(null);
+                      return;
+                    }
+                    setViewMode("history");
+                    setSelectedSessionId(sessionId);
+                  }}
+                >
+                  <option value="">
+                    {t("adminDiagnosticsPage.selectPastSession")}
+                  </option>
+                  {sessions.map((session) => (
+                    <option key={session.id} value={session.id}>
+                      {formatDateTime(session.startedAt)}
+                      {session.isCurrent ? " (current)" : ""}
+                      {session.rateLimitSnapshotCount > 0
+                        ? t("adminDiagnosticsPage.session429", { count: session.rateLimitSnapshotCount })
+                        : ""}
+                    </option>
+                  ))}
+                </select>,
               }}
-            >
-              <option value="">Select past session…</option>
-              {sessions.map((session) => (
-                <option key={session.id} value={session.id}>
-                  {formatDateTime(session.startedAt)}
-                  {session.isCurrent ? " (current)" : ""}
-                  {session.rateLimitSnapshotCount > 0
-                    ? ` · ${session.rateLimitSnapshotCount}×429`
-                    : ""}
-                </option>
-              ))}
-            </select>
+            />
           </label>
         </div>
         <p className="small">
           {viewMode === "live" ? (
-            <>
-              Recording every 10s (shown by minute) into session{" "}
-              <code>{currentSession?.id ?? liveDiagnostics?.sessionId ?? "…"}</code>
-              {currentSession
-                ? ` · ${currentSession.snapshotCount} snapshots`
-                : ""}
-            </>
+            <><Trans
+              message="adminDiagnosticsPage.recordingEvery10sShownByMinuteIntoSession"
+              values={{
+                code: <code>{currentSession?.id ?? liveDiagnostics?.sessionId ?? t("adminDiagnosticsPage.message")}</code>,
+                snapshotCount: currentSession
+                ? t("adminDiagnosticsPage.snapshotCount", { count: currentSession.snapshotCount })
+                : "",
+              }}
+            /></>
           ) : selectedSession ? (
-            <>
-              Viewing {formatDateTime(selectedSession.startedAt)}
-              {selectedSession.endedAt
-                ? ` – ${formatDateTime(selectedSession.endedAt)}`
-                : " (running)"}
-              {" · "}
-              {selectedSession.snapshotCount} snapshots
-              {selectedSession.rateLimitSnapshotCount > 0
-                ? ` · ${selectedSession.rateLimitSnapshotCount} captured at 429`
-                : ""}
-            </>
+            <><Trans
+              message="adminDiagnosticsPage.viewingSnapshots"
+              values={{
+                startedAt: formatDateTime(selectedSession.startedAt),
+                endedAt: selectedSession.endedAt
+                ? t("adminDiagnosticsPage.sessionEnd", { time: formatDateTime(selectedSession.endedAt) })
+                : " (running)",
+                snapshotCount: selectedSession.snapshotCount,
+                rateLimitSnapshotCount: selectedSession.rateLimitSnapshotCount > 0
+                ? t("adminDiagnosticsPage.capturedAt429", { rateLimitSnapshotCount: selectedSession.rateLimitSnapshotCount })
+                : "",
+              }}
+            /></>
           ) : (
-            "Select a session to review recorded metrics."
+            t("adminDiagnosticsPage.selectASessionToReviewRecordedMetrics")
           )}
         </p>
       </section>
 
       {viewMode === "history" && snapshots.length > 0 && (
         <section className="card diagnostics-snapshot-picker">
-          <h2>Timeline (1-minute summaries)</h2>
+          <h2>
+            {t("adminDiagnosticsPage.timeline1MinuteSummaries")}
+          </h2>
           <div className="diagnostics-snapshot-list">
             {snapshots.map((snapshot) => (
               <button
@@ -458,12 +557,17 @@ export function AdminDiagnosticsPage() {
               >
                 <span>{formatMinuteTime(snapshot.recordedAt)}</span>
                 <span className="diagnostics-snapshot-chip-meta">
-                  {reasonLabel(snapshot.reason)}
-                  {snapshot.sampleCount != null && snapshot.sampleCount > 1
-                    ? ` · ${snapshot.sampleCount} samples`
-                    : ""}
-                  {" · "}
-                  {snapshot.apiCallsLast5m}/5m · {snapshot.rateLimitCount}×429
+                  <Trans
+                    message="adminDiagnosticsPage.5m429"
+                    values={{
+                      reason: reasonLabel(snapshot.reason),
+                      sampleCount: snapshot.sampleCount != null && snapshot.sampleCount > 1
+                      ? t("adminDiagnosticsPage.samples", { count: snapshot.sampleCount })
+                      : "",
+                      apiCallsLast5m: snapshot.apiCallsLast5m,
+                      rateLimitCount: snapshot.rateLimitCount,
+                    }}
+                  />
                 </span>
               </button>
             ))}
@@ -472,7 +576,9 @@ export function AdminDiagnosticsPage() {
       )}
 
       {!activeDiagnostics ? (
-        <p>Loading diagnostics…</p>
+        <p>
+          {t("adminDiagnosticsPage.loadingDiagnostics")}
+        </p>
       ) : (
         <>
           <DiagnosticsSummaryPanels diagnostics={activeDiagnostics} />
@@ -481,9 +587,7 @@ export function AdminDiagnosticsPage() {
       )}
 
       <p className="small" style={{ marginTop: "1rem" }}>
-        <Link to="/admin" className="admin-back-link">
-          ← Back to admin
-        </Link>
+        <Link to="/admin" className="admin-back-link">{t("common.backToAdmin")}</Link>
       </p>
     </div>
   );
