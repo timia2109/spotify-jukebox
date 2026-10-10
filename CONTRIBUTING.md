@@ -138,9 +138,13 @@ Tests use in-memory SQLite and mock Spotify clients — no running containers re
 
 ## Frontend localization
 
-All application-owned UI copy lives in [`src/client/i18n/locales/en.ts`](src/client/i18n/locales/en.ts).
+Application-owned UI copy lives in [`src/client/i18n/locales/`](src/client/i18n/locales/).
+[`en.ts`](src/client/i18n/locales/en.ts) defines the base keys;
+[`de.ts`](src/client/i18n/locales/de.ts) contains the complete German translation.
 Components, dialogs, placeholders, accessible labels, and notifications use typed
-translation keys. English is the default and fallback language.
+translation keys. English and German are included. German browser locales (including `de-DE`, `de-AT`,
+and `de-CH`) automatically use the German catalogue. A saved language preference
+takes priority; English remains the fallback language.
 
 To add a language:
 
@@ -148,7 +152,7 @@ To add a language:
    the export, and translate the values. Keep keys and `{placeholder}` names intact.
    Use `satisfies Dictionary` (imported as a type from `../core`) to check completeness.
 2. Import that dictionary in `src/client/i18n/index.tsx` and add it to `dictionaries`,
-   for example `{ en, de }`.
+   for example `{ en, de, fr }`.
 3. The app picks the first supported browser language, including regional codes
    such as `de-DE`. A saved preference takes priority. Call `setLocale("de")` from
    a language control to update the UI, document language/title, and saved preference.

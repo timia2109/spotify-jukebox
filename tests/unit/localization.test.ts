@@ -7,7 +7,8 @@ import ts from "typescript";
 import { createTranslator } from "../../src/client/i18n/core";
 import type { Message, TranslationKey } from "../../src/client/i18n/core";
 import { en } from "../../src/client/i18n/locales/en";
-import { Trans, queuePositionLabel, queueStatusLabel, resolveLocale } from "../../src/client/i18n";
+import { de } from "../../src/client/i18n/locales/de";
+import { Trans, queuePositionLabel, queueStatusLabel, resolveLocale, setLocale, getLocale, formatNumber } from "../../src/client/i18n";
 import { formatApiError, localizeMessage, resolveRateLimitMessage } from "../../src/client/i18n/errors";
 import { ApiError } from "../../src/client/http";
 import { HomePage } from "../../src/client/pages/HomePage";
@@ -97,6 +98,88 @@ describe("frontend localization", () => {
     expect(resolveLocale("en-US")).toBe("en");
     expect(resolveLocale("EN-gb")).toBe("en");
     expect(resolveLocale("unsupported")).toBe("en");
+  });
+
+  test("the German catalogue covers every message and preserves each plural form's placeholders", () => {
+    expect(Object.keys(de).sort()).toEqual(Object.keys(en).sort());
+    for (const key of Object.keys(en) as TranslationKey[]) {
+      const source: Message = en[key];
+      const translation: Message = de[key];
+      if (typeof source === "string") {
+        expect(typeof translation).toBe("string");
+        expect([...placeholders(translation)].sort()).toEqual([...placeholders(source)].sort());
+      } else {
+        expect(typeof translation).toBe("object");
+        if (typeof translation === "string") continue;
+        expect(Object.keys(translation).sort()).toEqual(Object.keys(source).sort());
+        for (const form of Object.keys(source) as Intl.LDMLPluralRule[]) {
+          expect([...placeholders(translation[form]!)].sort())
+            .toEqual([...placeholders(source[form]!)].sort());
+        }
+      }
+    }
+  });
+
+  test("German regional locales render translated pages, rich messages, and queue labels", () => {
+    const previous = getLocale();
+    try {
+      expect(resolveLocale("de-DE")).toBe("de");
+      expect(resolveLocale("de-AT")).toBe("de");
+      expect(resolveLocale("DE-ch")).toBe("de");
+      setLocale("de-DE");
+      expect(getLocale()).toBe("de");
+      expect(formatNumber(1234.5)).toBe("1.234,5");
+      const home = renderToStaticMarkup(createElement(HomePage));
+      expect(home).toContain('<a href="/admin">Verwaltung öffnen</a>, um Spotify zu verbinden');
+      expect(home).toContain("zum Beispiel <code>/p/deine-party</code>");
+      const tutorial = renderToStaticMarkup(createElement(GuestTutorial, { slug: "party", onDismiss() {} }));
+      expect(tutorial).toContain("Schritt 1 von 4");
+      expect(tutorial).toContain("Stimme Songs zu, die dir gefallen");
+      expect(tutorial).toContain("Tippe beim Song eines anderen Gastes");
+      expect(tutorial).toContain("Überspringen");
+      const prompt = renderToStaticMarkup(createElement(Trans, {
+        message: "guestNamePrompt.someoneNamedIsAlreadyHereIsThatYou",
+        values: { name: createElement("strong", null, "<Tim>") },
+      }));
+      expect(prompt).toBe("Jemand namens <strong>&lt;Tim&gt;</strong> ist bereits hier. Bist du das?");
+      expect(queuePositionLabel("Now playing")).toBe("Läuft gerade");
+      expect(queuePositionLabel("Up next")).toBe("Als Nächstes");
+      expect(queuePositionLabel("#3 in queue")).toBe("Platz 3 in der Warteschlange");
+      expect(queueStatusLabel("skipped")).toBe("Entfernt");
+      expect(queueStatusLabel("pending")).toBe("Ausstehend");
+    } finally {
+      setLocale(previous);
+    }
+  });
+
+  test("German API messages localize retry durations, plural forms, and device transfers", () => {
+    const previous = getLocale();
+    try {
+      setLocale("de");
+      expect(localizeMessage("You've used all 10 upvotes. Try again in 2 minutes."))
+        .toBe("Du hast alle 10 Zustimmungen verbraucht. Versuche es in 2 Minuten erneut.");
+      expect(localizeMessage("You've used your boost. Try again in 1 second."))
+        .toBe("Du hast deinen Boost verbraucht. Versuche es in 1 Sekunde erneut.");
+      expect(localizeMessage("The party has reached its search limit. Try again in 1.5 hours."))
+        .toBe("Die Party hat ihr Suchlimit erreicht. Versuche es in 1,5 Stunden erneut.");
+      expect(formatApiError(new ApiError("Duplicate song", "DUPLICATE")))
+        .toBe("Dieser Song ist bereits in der Warteschlange.");
+      expect(formatApiError(new ApiError("No session", "NO_SESSION")))
+        .toBe("Deine Sitzung ist abgelaufen. Tritt der Party erneut bei.");
+      expect(localizeMessage("Moving playback from another device to the selected player…"))
+        .toBe("Wiedergabe wird von einem anderen Gerät auf das ausgewählte Gerät übertragen…");
+      expect(localizeMessage("Could not move playback to target device — retrying in 10s"))
+        .toBe("Wiedergabe konnte nicht auf das Zielgerät übertragen werden — erneuter Versuch in 10 s");
+      const translator = createTranslator("de", de);
+      expect(translator.translate("guestMyInfoPage.youHaveBoostLeft", { count: 1 }))
+        .toBe(" Du hast noch 1 Boost übrig.");
+      expect(translator.translate("guestMyInfoPage.youHaveBoostLeft", { count: 2 }))
+        .toBe(" Du hast noch 2 Boosts übrig.");
+      expect(translator.translate("statPanels.perHours", { count: 1 })).toBe("pro Stunde");
+      expect(translator.translate("statPanels.perHours", { count: 2 })).toBe("pro 2 Stunden");
+    } finally {
+      setLocale(previous);
+    }
   });
 
   test("all static translation calls supply the catalogue's placeholders", () => {

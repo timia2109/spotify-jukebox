@@ -3,11 +3,12 @@ import type { ReactNode } from "react";
 import { createTranslator } from "./core";
 import type { Dictionary, TranslationKey, TranslationValues } from "./core";
 import { en, wirePatterns } from "./locales/en";
+import { de } from "./locales/de";
 
 export type { Dictionary, TranslationKey } from "./core";
 
 // Register additional language files here. Regional codes also match their base language.
-const dictionaries: Record<string, Dictionary> = { en };
+const dictionaries: Record<string, Dictionary> = { en, de };
 const storageKey = "jukebox_locale";
 const listeners = new Set<() => void>();
 
