@@ -1,3 +1,4 @@
+import { t, Trans, useLocale } from "@/client/i18n";
 import { Link, useLocation } from "react-router-dom";
 
 export function AdminNav({
@@ -7,6 +8,7 @@ export function AdminNav({
   guestCount: number;
   partyActive: boolean;
 }) {
+  useLocale();
   const location = useLocation();
   if (!partyActive) return null;
 
@@ -16,38 +18,36 @@ export function AdminNav({
   const onDiagnostics = location.pathname === "/admin/diagnostics";
 
   return (
-    <nav className="admin-nav" aria-label="Admin sections">
+    <nav className="admin-nav" aria-label={t("adminNav.adminSections")}>
       {partyActive ? (
         <>
           <Link
             to="/admin"
             className={`admin-nav-link${onQueue ? " admin-nav-link--active" : ""}`}
-          >
-            Queue
-          </Link>
+          >{t("adminNav.queue")}</Link>
           <Link
             to="/admin/guests"
             className={`admin-nav-link${onGuests ? " admin-nav-link--active" : ""}`}
           >
-            Guests
-            {guestCount > 0 ? (
-              <span className="admin-nav-badge">{guestCount}</span>
-            ) : null}
+            <Trans
+              message="adminNav.guests"
+              values={{
+                span: guestCount > 0 ? (
+                  <span className="admin-nav-badge">{guestCount}</span>
+                ) : null,
+              }}
+            />
           </Link>
           <Link
             to="/admin/display"
             className={`admin-nav-link${onDisplay ? " admin-nav-link--active" : ""}`}
-          >
-            Display
-          </Link>
+          >{t("adminNav.display")}</Link>
         </>
       ) : null}
       <Link
         to="/admin/diagnostics"
         className={`admin-nav-link${onDiagnostics ? " admin-nav-link--active" : ""}`}
-      >
-        Stats
-      </Link>
+      >{t("common.stats")}</Link>
     </nav>
   );
 }

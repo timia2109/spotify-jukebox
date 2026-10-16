@@ -1,3 +1,5 @@
+import { localizeMessage } from "../i18n/errors";
+import { t, Trans, formatNumber, getLocale, useLocale } from "@/client/i18n";
 import * as React from "react";
 import type { HostDiagnostics } from "@/shared/types";
 import { DEFAULT_PARTY_SEARCH_LIMIT } from "@/shared/types";
@@ -6,13 +8,13 @@ export function formatRateLimitWindow(windowMs: number): string {
   const minutes = windowMs / (60 * 1000);
   if (minutes >= 60 && minutes % 60 === 0) {
     const hours = minutes / 60;
-    return hours === 1 ? "per hour" : `per ${hours} hours`;
+    return t("statPanels.perHours", { count: hours });
   }
   if (minutes >= 1) {
-    return minutes === 1 ? "per minute" : `per ${minutes} minutes`;
+    return t("statPanels.perMinutes", { count: minutes });
   }
   const seconds = Math.round(windowMs / 1000);
-  return seconds === 1 ? "per second" : `per ${seconds} seconds`;
+  return t("statPanels.perSeconds", { count: seconds });
 }
 
 export function StatTile({
@@ -26,6 +28,7 @@ export function StatTile({
   meta?: React.ReactNode;
   tone?: "default" | "warn" | "ok";
 }) {
+  useLocale();
   return (
     <div className={`stat-tile stat-tile--${tone}`}>
       <span className="stat-tile-label">{label}</span>
@@ -42,6 +45,7 @@ export function StatGrid({
   children: React.ReactNode;
   columns?: 2 | 3 | 4;
 }) {
+  useLocale();
   return (
     <div className={`stat-grid stat-grid--cols-${columns}`}>{children}</div>
   );
@@ -60,6 +64,7 @@ export function QuotaTile({
   windowMs: number;
   tone?: "default" | "warn" | "ok";
 }) {
+  useLocale();
   const pct = limit > 0 ? Math.round((remaining / limit) * 100) : 0;
 
   return (
@@ -67,7 +72,7 @@ export function QuotaTile({
       <span className="stat-tile-label">{label}</span>
       <span className="stat-tile-value">{remaining}</span>
       <span className="stat-tile-meta">
-        {remaining} of {limit} left · {formatRateLimitWindow(windowMs)}
+        {t("statPanels.ofLeft", { remaining, limit, windowMs: formatRateLimitWindow(windowMs) })}
       </span>
       <div
         className="stat-tile-bar"
@@ -75,7 +80,7 @@ export function QuotaTile({
         aria-valuenow={remaining}
         aria-valuemin={0}
         aria-valuemax={limit}
-        aria-label={`${label}: ${remaining} of ${limit} remaining`}
+        aria-label={t("statPanels.remainingLabel", { label, remaining, limit })}
       >
         <div className="stat-tile-bar-fill" style={{ width: `${pct}%` }} />
       </div>
@@ -96,6 +101,7 @@ export function BudgetTile({
   windowMs: number;
   resetsInMs?: number;
 }) {
+  useLocale();
   const remaining = Math.max(0, limit - used);
   const pct = limit > 0 ? Math.round((remaining / limit) * 100) : 0;
   const tone = remaining <= limit * 0.2 ? "warn" : "default";
@@ -105,10 +111,17 @@ export function BudgetTile({
       <span className="stat-tile-label">{label}</span>
       <span className="stat-tile-value">{used}</span>
       <span className="stat-tile-meta">
-        {used} of {limit} used · {formatRateLimitWindow(windowMs)}
-        {resetsInMs != null && resetsInMs > 0
-          ? ` · resets in ${Math.ceil(resetsInMs / 1000)}s`
-          : ""}
+        <Trans
+          message="statPanels.ofUsed"
+          values={{
+            used,
+            limit,
+            windowMs: formatRateLimitWindow(windowMs),
+            resetsInMs: resetsInMs != null && resetsInMs > 0
+            ? t("statPanels.resetsInS", { resetsInMs: Math.ceil(resetsInMs / 1000) })
+            : "",
+          }}
+        />
       </span>
       <div
         className="stat-tile-bar"
@@ -116,7 +129,7 @@ export function BudgetTile({
         aria-valuenow={remaining}
         aria-valuemin={0}
         aria-valuemax={limit}
-        aria-label={`${label}: ${remaining} of ${limit} remaining`}
+        aria-label={t("statPanels.remainingLabel", { label, remaining, limit })}
       >
         <div className="stat-tile-bar-fill" style={{ width: `${pct}%` }} />
       </div>
@@ -133,6 +146,7 @@ export function StatPanel({
   intro?: string;
   children: React.ReactNode;
 }) {
+  useLocale();
   return (
     <section className="stat-panel card">
       <h2>{title}</h2>
@@ -143,34 +157,34 @@ export function StatPanel({
 }
 
 function formatDuration(ms: number): string {
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
-  return `${(ms / 3_600_000).toFixed(1)}h`;
+  if (ms < 60_000) return t("common.duration.seconds", { value: formatNumber(Math.round(ms / 1000)) });
+  if (ms < 3_600_000) return t("common.duration.minutes", { value: formatNumber(Math.round(ms / 60_000)) });
+  return t("common.duration.hours", { value: formatNumber(ms / 3_600_000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) });
 }
 
 function formatTime(at: number | null): string {
   if (at == null) return "—";
-  return new Date(at).toLocaleTimeString();
+  return new Date(at).toLocaleTimeString(getLocale());
 }
 
 function formatPercent(rate: number): string {
-  return `${Math.round(rate * 100)}%`;
+  return formatNumber(rate, { style: "percent", maximumFractionDigits: 0 });
 }
 
 function limitKindLabel(kind: string): string {
   switch (kind) {
     case "guest_add":
-      return "Adds blocked";
+      return t("statPanels.addsBlocked");
     case "guest_upvote":
-      return "Upvotes blocked";
+      return t("statPanels.upvotesBlocked");
     case "guest_downvote":
-      return "Downvotes blocked";
+      return t("statPanels.downvotesBlocked");
     case "guest_boost":
-      return "Boosts blocked";
+      return t("statPanels.boostsBlocked");
     case "guest_search":
-      return "Guest searches blocked";
+      return t("statPanels.guestSearchesBlocked");
     case "party_search":
-      return "Party searches blocked";
+      return t("statPanels.partySearchesBlocked");
     default:
       return kind;
   }
@@ -192,6 +206,7 @@ export function DiagnosticsSummaryPanels({
 }: {
   diagnostics: HostDiagnostics;
 }) {
+  useLocale();
   const guestLimits = diagnostics.guestLimits ?? {
     total: 0,
     last5m: 0,
@@ -210,26 +225,26 @@ export function DiagnosticsSummaryPanels({
   return (
     <>
       <StatPanel
-        title="API activity"
-        intro="Spotify call volume and rate-limit pressure over recent windows."
+        title={t("statPanels.apiActivity")}
+        intro={t("statPanels.spotifyCallVolumeAndRateLimitPressureOver")}
       >
         <StatGrid columns={4}>
           <StatTile
-            label="Spotify calls (5m)"
+            label={t("statPanels.spotifyCalls5m")}
             value={diagnostics.spotifyApi.last5m}
-            meta={`~${callsPerMin}/min · ${diagnostics.spotifyApi.last1m} in last 1m`}
+            meta={t("statPanels.minInLast1m", { callsPerMin, last1m: diagnostics.spotifyApi.last1m })}
           />
           <StatTile
-            label="Spotify 429s"
+            label={t("statPanels.spotify429s")}
             value={diagnostics.spotifyApi.rateLimitCount}
             meta={
               syncRateLimited
-                ? `Backing off ${formatDuration(diagnostics.sync.retryAfterMs ?? 0)} · ${spotify429Last5m} in last 5m`
+                ? t("statPanels.backingOffInLast5m", { retryAfterMs: formatDuration(diagnostics.sync.retryAfterMs ?? 0), spotify429Last5m })
                 : spotify429Last5m > 0
-                  ? `${spotify429Last5m} in last 5m · last at ${formatTime(diagnostics.spotifyApi.last429At)}`
+                  ? t("statPanels.inLast5mLastAt", { spotify429Last5m, last429At: formatTime(diagnostics.spotifyApi.last429At) })
                   : diagnostics.spotifyApi.last429At != null
-                    ? `Last at ${formatTime(diagnostics.spotifyApi.last429At)}`
-                    : "None this session"
+                    ? t("statPanels.lastAt", { last429At: formatTime(diagnostics.spotifyApi.last429At) })
+                    : t("statPanels.noneThisSession")
             }
             tone={
               syncRateLimited || spotify429Last5m > 0
@@ -238,27 +253,27 @@ export function DiagnosticsSummaryPanels({
             }
           />
           <StatTile
-            label="Search queries (5m)"
+            label={t("statPanels.searchQueries5m")}
             value={searchesLast5m}
-            meta={`${diagnostics.search.total} total · ${formatPercent(diagnostics.search.hitRate)} cache hit`}
+            meta={t("statPanels.totalCacheHit", { total: diagnostics.search.total, hitRate: formatPercent(diagnostics.search.hitRate) })}
             tone={diagnostics.search.cacheMisses > diagnostics.search.cacheHits ? "warn" : "default"}
           />
           <StatTile
-            label="API calls"
-            value={diagnostics.spotifyApi.last24h.toLocaleString()}
-            meta={`Last 24h · session uptime ${formatDuration(diagnostics.uptimeMs)}`}
+            label={t("statPanels.apiCalls")}
+            value={diagnostics.spotifyApi.last24h.toLocaleString(getLocale())}
+            meta={t("statPanels.last24hSessionUptime", { uptimeMs: formatDuration(diagnostics.uptimeMs) })}
             tone={diagnostics.spotifyApi.dailyWarnExceeded ? "warn" : "default"}
           />
         </StatGrid>
       </StatPanel>
 
       <StatPanel
-        title="Budgets & limits"
-        intro="Shared API budget, party search allowance, and guest action blocks."
+        title={t("statPanels.budgetsLimits")}
+        intro={t("statPanels.sharedApiBudgetPartySearchAllowanceAndGuest")}
       >
         <StatGrid columns={4}>
           <BudgetTile
-            label="Global Spotify budget"
+            label={t("statPanels.globalSpotifyBudget")}
             used={diagnostics.globalApiBudget.used}
             limit={diagnostics.globalApiBudget.limit}
             windowMs={diagnostics.globalApiBudget.windowMs}
@@ -266,7 +281,7 @@ export function DiagnosticsSummaryPanels({
           />
           {diagnostics.partySearchBudget ? (
             <BudgetTile
-              label="Party search budget"
+              label={t("statPanels.partySearchBudget")}
               used={diagnostics.partySearchBudget.used}
               limit={diagnostics.partySearchBudget.limit}
               windowMs={DEFAULT_PARTY_SEARCH_LIMIT.windowMs}
@@ -274,32 +289,32 @@ export function DiagnosticsSummaryPanels({
             />
           ) : (
             <StatTile
-              label="Party search budget"
+              label={t("statPanels.partySearchBudget")}
               value="—"
-              meta="No active party"
+              meta={t("common.noActiveParty")}
             />
           )}
           <StatTile
-            label="Guest limits hit (5m)"
+            label={t("statPanels.guestLimitsHit5m")}
             value={guestLimits.last5m}
             meta={
               guestLimits.total > 0
-                ? `${guestLimits.total} total this session`
-                : "No guest blocks recently"
+                ? t("statPanels.totalThisSession", { total: guestLimits.total })
+                : t("statPanels.noGuestBlocksRecently")
             }
             tone={guestLimits.last5m > 0 ? "warn" : "default"}
           />
           <StatTile
-            label="Sync"
-            value={diagnostics.sync.deviceActive ? "Active" : "Idle"}
+            label={t("statPanels.sync")}
+            value={diagnostics.sync.deviceActive ? t("statPanels.active") : t("statPanels.idle")}
             meta={
               syncRateLimited
-                ? `Rate limited · ${diagnostics.sync.lastError ?? "backing off"}`
+                ? t("statPanels.rateLimited", { lastError: localizeMessage(diagnostics.sync.lastError) ?? t("statPanels.backingOff") })
                 : diagnostics.sync.deviceMismatch
-                  ? diagnostics.sync.lastError ?? "Transferring playback"
+                  ? localizeMessage(diagnostics.sync.lastError) ?? t("statPanels.transferringPlayback")
                   : diagnostics.sync.deviceRestricted
-                    ? diagnostics.sync.lastError ?? "Restricted device"
-                    : diagnostics.sync.lastError ?? "Spotify reachable"
+                    ? localizeMessage(diagnostics.sync.lastError) ?? t("statPanels.restrictedDevice")
+                    : localizeMessage(diagnostics.sync.lastError) ?? t("statPanels.spotifyReachable")
             }
             tone={
               syncRateLimited ||
@@ -323,9 +338,7 @@ export function DiagnosticsSummaryPanels({
         )}
         {diagnostics.spotifyApi.dailyWarnExceeded && (
           <p className="stat-panel-warn">
-            24h Spotify call count exceeds soft threshold (
-            {diagnostics.spotifyApi.dailyWarnCalls?.toLocaleString()}). Expect
-            longer Retry-After values.
+            {t("statPanels.24hSpotifyCallCountExceedsSoftThresholdExpect", { toLocaleString: diagnostics.spotifyApi.dailyWarnCalls?.toLocaleString(getLocale()) })}
           </p>
         )}
       </StatPanel>
@@ -345,32 +358,33 @@ export function GuestQuotaPanel({
     boost: { count: number; windowMs: number };
   };
 }) {
+  useLocale();
   return (
     <StatPanel
-      title="Actions left"
-      intro="Your remaining adds, upvotes, downvotes, and boosts for this party."
+      title={t("statPanels.actionsLeft")}
+      intro={t("statPanels.yourRemainingAddsUpvotesDownvotesAndBoostsFor")}
     >
       <StatGrid columns={4}>
         <QuotaTile
-          label="Adds"
+          label={t("statPanels.adds")}
           remaining={quota.add}
           limit={rateLimits.add.count}
           windowMs={rateLimits.add.windowMs}
         />
         <QuotaTile
-          label="Upvotes"
+          label={t("common.upvotes")}
           remaining={quota.upvote}
           limit={rateLimits.upvote.count}
           windowMs={rateLimits.upvote.windowMs}
         />
         <QuotaTile
-          label="Downvotes"
+          label={t("common.downvotes")}
           remaining={quota.downvote}
           limit={rateLimits.downvote.count}
           windowMs={rateLimits.downvote.windowMs}
         />
         <QuotaTile
-          label="Boosts"
+          label={t("common.boosts")}
           remaining={quota.boost}
           limit={rateLimits.boost.count}
           windowMs={rateLimits.boost.windowMs}
@@ -392,15 +406,16 @@ export function GuestActivityPanel({
     songsAdded: number;
   };
 }) {
+  useLocale();
   return (
-    <StatPanel title="Your activity">
+    <StatPanel title={t("statPanels.yourActivity")}>
       <StatGrid columns={3}>
-        <StatTile label="Upvotes given" value={stats.upvotesGiven} />
-        <StatTile label="Downvotes given" value={stats.downvotesGiven} />
-        <StatTile label="Boosts used" value={stats.boostsGiven} />
-        <StatTile label="Songs in queue" value={stats.songsInQueue} />
-        <StatTile label="Songs played" value={stats.songsPlayed} />
-        <StatTile label="Songs added" value={stats.songsAdded} />
+        <StatTile label={t("statPanels.upvotesGiven")} value={stats.upvotesGiven} />
+        <StatTile label={t("statPanels.downvotesGiven")} value={stats.downvotesGiven} />
+        <StatTile label={t("statPanels.boostsUsed")} value={stats.boostsGiven} />
+        <StatTile label={t("statPanels.songsInQueue")} value={stats.songsInQueue} />
+        <StatTile label={t("statPanels.songsPlayed")} value={stats.songsPlayed} />
+        <StatTile label={t("statPanels.songsAdded")} value={stats.songsAdded} />
       </StatGrid>
     </StatPanel>
   );

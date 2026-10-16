@@ -1,3 +1,4 @@
+import { t, Trans, useLocale } from "@/client/i18n";
 import * as React from "react";
 import type { DefaultGuestLimits, PartyRateLimits, RateLimitConfig } from "@/shared/types";
 import { api } from "../http";
@@ -16,6 +17,7 @@ function LimitRow({
   windowUnit: "min" | "sec";
   onChange: (next: RateLimitConfig) => void;
 }) {
+  useLocale();
   const windowValue =
     windowUnit === "sec"
       ? Math.round(value.windowMs / 1000)
@@ -27,36 +29,44 @@ function LimitRow({
       <div className="small">{hint}</div>
       <div className="row limit-row-inputs">
         <label className="small">
-          Max{" "}
-          <input
-            type="number"
-            min={1}
-            max={999}
-            className="limit-row-number"
-            value={value.count}
-            onChange={(e) =>
-              onChange({ ...value, count: Number(e.target.value) })
-            }
+          <Trans
+            message="guestLimitsFields.max"
+            values={{
+              input: <input
+                type="number"
+                min={1}
+                max={999}
+                className="limit-row-number"
+                value={value.count}
+                onChange={(e) =>
+                  onChange({ ...value, count: Number(e.target.value) })
+                }
+              />,
+            }}
           />
         </label>
         <label className="small">
-          per{" "}
-          <input
-            type="number"
-            min={1}
-            max={windowUnit === "sec" ? 300 : 240}
-            className="limit-row-number"
-            value={windowValue}
-            onChange={(e) => {
-              const amount = Number(e.target.value);
-              onChange({
-                ...value,
-                windowMs:
-                  windowUnit === "sec" ? amount * 1000 : amount * 60_000,
-              });
+          <Trans
+            message="guestLimitsFields.per"
+            values={{
+              input: <input
+                type="number"
+                min={1}
+                max={windowUnit === "sec" ? 300 : 240}
+                className="limit-row-number"
+                value={windowValue}
+                onChange={(e) => {
+                  const amount = Number(e.target.value);
+                  onChange({
+                    ...value,
+                    windowMs:
+                      windowUnit === "sec" ? amount * 1000 : amount * 60_000,
+                  });
+                }}
+              />,
+              unit: windowUnit === "sec" ? t("guestLimitsFields.seconds") : t("guestLimitsFields.minutes"),
             }}
-          />{" "}
-          {windowUnit === "sec" ? "seconds" : "minutes"}
+          />
         </label>
       </div>
     </div>
@@ -80,6 +90,7 @@ export function GuestLimitsFields({
   onRateLimitsChange: (next: PartyRateLimits) => void;
   showIntro?: boolean;
 }) {
+  useLocale();
   function patchLimit(key: keyof PartyRateLimits, next: RateLimitConfig) {
     onRateLimitsChange({ ...rateLimits, [key]: next });
   }
@@ -88,13 +99,13 @@ export function GuestLimitsFields({
     <>
       {showIntro && (
         <p className="small guest-limits-intro">
-          Per-guest action budgets reset after each time window. Boost cap limits
-          how many tracks can be boosted in the queue at once. Reset individual
-          guests from the Guests page.
+          {t("guestLimitsFields.perGuestActionBudgetsResetAfterEachTime")}
         </p>
       )}
       <label className="form-field">
-        <span>Downvotes to skip a song</span>
+        <span>
+          {t("guestLimitsFields.downvotesToSkipASong")}
+        </span>
         <input
           type="number"
           min={1}
@@ -104,12 +115,14 @@ export function GuestLimitsFields({
         />
       </label>
       <label className="form-field">
-        <span>Active boost cap</span>
+        <span>
+          {t("guestLimitsFields.activeBoostCap")}
+        </span>
         <input
           type="number"
           min={1}
           max={99}
-          placeholder="Unlimited"
+          placeholder={t("guestLimitsFields.unlimited")}
           value={boostCap ?? ""}
           onChange={(e) => {
             const raw = e.target.value.trim();
@@ -117,47 +130,47 @@ export function GuestLimitsFields({
           }}
         />
         <span className="small">
-          Max boosted tracks in the queue at once. Leave blank for unlimited.
+          {t("guestLimitsFields.maxBoostedTracksInTheQueueAtOnce")}
         </span>
       </label>
       <LimitRow
-        label="Add songs"
-        hint="How many tracks a guest can queue in the window."
+        label={t("guestLimitsFields.addSongs")}
+        hint={t("guestLimitsFields.howManyTracksAGuestCanQueueIn")}
         value={rateLimits.add}
         windowUnit="min"
         onChange={(next) => patchLimit("add", next)}
       />
       <LimitRow
-        label="Upvotes"
-        hint="How many upvotes a guest can spend in the window."
+        label={t("common.upvotes")}
+        hint={t("guestLimitsFields.howManyUpvotesAGuestCanSpendIn")}
         value={rateLimits.upvote}
         windowUnit="min"
         onChange={(next) => patchLimit("upvote", next)}
       />
       <LimitRow
-        label="Downvotes"
-        hint="How many downvotes a guest can cast in the window."
+        label={t("common.downvotes")}
+        hint={t("guestLimitsFields.howManyDownvotesAGuestCanCastIn")}
         value={rateLimits.downvote}
         windowUnit="min"
         onChange={(next) => patchLimit("downvote", next)}
       />
       <LimitRow
-        label="Boost"
-        hint="How many times a guest can boost a song in the window."
+        label={t("common.boost")}
+        hint={t("guestLimitsFields.howManyTimesAGuestCanBoostA")}
         value={rateLimits.boost}
         windowUnit="min"
         onChange={(next) => patchLimit("boost", next)}
       />
       <LimitRow
-        label="Search (per guest)"
-        hint="Spotify searches one guest can trigger in the window."
+        label={t("guestLimitsFields.searchPerGuest")}
+        hint={t("guestLimitsFields.spotifySearchesOneGuestCanTriggerInThe")}
         value={rateLimits.search}
         windowUnit="min"
         onChange={(next) => patchLimit("search", next)}
       />
       <LimitRow
-        label="Search (party-wide)"
-        hint="Total Spotify searches across all guests in the window."
+        label={t("guestLimitsFields.searchPartyWide")}
+        hint={t("guestLimitsFields.totalSpotifySearchesAcrossAllGuestsInThe")}
         value={rateLimits.partySearch}
         windowUnit="sec"
         onChange={(next) => patchLimit("partySearch", next)}
@@ -183,6 +196,7 @@ export function GuestLimitsPanel({
   onDefaultGuestLimitsChange: (limits: DefaultGuestLimits) => void;
   onSaved: () => void;
 }) {
+  useLocale();
   const [limits, setLimits] = React.useState<PartyRateLimits>(rateLimits);
   const [downvoteThresholdValue, setDownvoteThresholdValue] = React.useState(downvoteThreshold);
   const [boostCapValue, setBoostCapValue] = React.useState<number | null>(boostCap);
@@ -210,7 +224,7 @@ export function GuestLimitsPanel({
           boostCap: boostCapValue,
         }),
       });
-      setNotice("Guest limits saved.");
+      setNotice(t("guestLimitsFields.guestLimitsSaved"));
       onSaved();
     } catch (e) {
       setError(formatApiError(e));
@@ -236,7 +250,7 @@ export function GuestLimitsPanel({
         },
       );
       onDefaultGuestLimitsChange(saved);
-      setNotice("Saved as defaults for new parties.");
+      setNotice(t("guestLimitsFields.savedAsDefaultsForNewParties"));
     } catch (e) {
       setError(formatApiError(e));
     } finally {
@@ -246,7 +260,9 @@ export function GuestLimitsPanel({
 
   return (
     <div className="admin-section admin-limits-panel">
-      <h3>Guest limits</h3>
+      <h3>
+        {t("guestLimitsFields.guestLimits")}
+      </h3>
       <GuestLimitsFields
         downvoteThreshold={downvoteThresholdValue}
         boostCap={boostCapValue}
@@ -259,7 +275,7 @@ export function GuestLimitsPanel({
       {notice && <p className="small">{notice}</p>}
       <div className="row party-controls">
         <button type="button" onClick={() => void save()} disabled={saving}>
-          {saving ? "Saving…" : "Save limits"}
+          {saving ? t("common.saving") : t("guestLimitsFields.saveLimits")}
         </button>
         <button
           type="button"
@@ -267,7 +283,7 @@ export function GuestLimitsPanel({
           disabled={savingDefaults}
           onClick={() => void saveAsDefaults()}
         >
-          {savingDefaults ? "Saving…" : "Save as defaults"}
+          {savingDefaults ? t("common.saving") : t("guestLimitsFields.saveAsDefaults")}
         </button>
         <button
           type="button"
@@ -278,7 +294,7 @@ export function GuestLimitsPanel({
             setBoostCapValue(defaultGuestLimits.boostCap);
           }}
         >
-          Reset defaults
+          {t("guestLimitsFields.resetDefaults")}
         </button>
       </div>
     </div>

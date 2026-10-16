@@ -1,3 +1,4 @@
+import { t, Trans, useLocale } from "@/client/i18n";
 import { Link, useLocation } from "react-router-dom";
 
 export function GuestNav({
@@ -7,6 +8,7 @@ export function GuestNav({
   slug: string;
   activeSongCount: number;
 }) {
+  useLocale();
   const location = useLocation();
 
   const base = `/p/${slug}`;
@@ -17,21 +19,23 @@ export function GuestNav({
     location.pathname === `${base}/songs`;
 
   return (
-    <nav className="guest-nav" aria-label="Guest sections">
+    <nav className="guest-nav" aria-label={t("guestNav.guestSections")}>
       <Link
         to={base}
         className={`guest-nav-link${onQueue ? " guest-nav-link--active" : ""}`}
-      >
-        Queue
-      </Link>
+      >{t("adminNav.queue")}</Link>
       <Link
         to={`${base}/info`}
         className={`guest-nav-link${onMyInfo ? " guest-nav-link--active" : ""}`}
       >
-        My Info
-        {activeSongCount > 0 ? (
-          <span className="guest-nav-badge">{activeSongCount}</span>
-        ) : null}
+        <Trans
+          message="guestNav.myInfo"
+          values={{
+            span: activeSongCount > 0 ? (
+              <span className="guest-nav-badge">{activeSongCount}</span>
+            ) : null,
+          }}
+        />
       </Link>
     </nav>
   );

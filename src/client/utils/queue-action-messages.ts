@@ -1,5 +1,6 @@
+import { t } from "@/client/i18n";
 import type { QueueItemView } from "@/shared/types";
-import { resolveRateLimitMessage } from "@/shared/rate-limit-messages";
+import { isUpNextError, resolveRateLimitMessage } from "../i18n/errors";
 import { ApiError } from "../http";
 
 export function upvoteBlockedMessage(
@@ -8,18 +9,18 @@ export function upvoteBlockedMessage(
   isOwn: boolean,
   upvotesLeft?: number,
 ): string {
-  if (!canMutate) return "Party is paused — actions are off";
+  if (!canMutate) return t("queue-action-messages.partyIsPausedActionsAreOff");
   if (item.guestUpvoteBlocked) {
     const upNextPending =
       item.status === "pending" && !item.guestDownvoteBlocked;
     return upNextPending
-      ? "Up next — upvotes are locked"
-      : "Already queued in Spotify — upvotes are locked";
+      ? t("queue-action-messages.upNextUpvotesAreLocked")
+      : t("queue-action-messages.alreadyQueuedInSpotifyUpvotesAreLocked");
   }
-  if (isOwn) return "You can't upvote your own song";
-  if (item.guestHasUpvoted) return "You already upvoted this song";
-  if (upvotesLeft === 0) return "No upvotes left";
-  return "Can't upvote this song";
+  if (isOwn) return t("queue-action-messages.youCanTUpvoteYourOwnSong");
+  if (item.guestHasUpvoted) return t("queue-action-messages.youAlreadyUpvotedThisSong");
+  if (upvotesLeft === 0) return t("queue-action-messages.noUpvotesLeft");
+  return t("queue-action-messages.canTUpvoteThisSong");
 }
 
 export function downvoteBlockedMessage(
@@ -27,13 +28,13 @@ export function downvoteBlockedMessage(
   canMutate: boolean,
   downvotesLeft?: number,
 ): string {
-  if (!canMutate) return "Party is paused — actions are off";
+  if (!canMutate) return t("queue-action-messages.partyIsPausedActionsAreOff");
   if (item.guestDownvoteBlocked) {
-    return "Already queued in Spotify — downvotes are locked";
+    return t("queue-action-messages.alreadyQueuedInSpotifyDownvotesAreLocked");
   }
-  if (item.guestHasDownvoted) return "You already downvoted this song";
-  if (downvotesLeft === 0) return "No downvotes left";
-  return "Can't downvote this song";
+  if (item.guestHasDownvoted) return t("queue-action-messages.youAlreadyDownvotedThisSong");
+  if (downvotesLeft === 0) return t("queue-action-messages.noDownvotesLeft");
+  return t("queue-action-messages.canTDownvoteThisSong");
 }
 
 export function boostBlockedMessage(
@@ -42,38 +43,38 @@ export function boostBlockedMessage(
   boostsLeft: number,
   partyBoostsRemaining?: number | null,
 ): string {
-  if (!canMutate) return "Party is paused — actions are off";
-  if (partyBoostsRemaining === 0) return "Boost limit reached for this party";
+  if (!canMutate) return t("queue-action-messages.partyIsPausedActionsAreOff");
+  if (partyBoostsRemaining === 0) return t("queue-action-messages.boostLimitReachedForThisParty");
   if (item.guestBoostBlocked) {
     const upNextPending =
       item.status === "pending" && !item.guestDownvoteBlocked;
     return upNextPending
-      ? "Up next — boost is locked"
-      : "Already queued in Spotify — boost is locked";
+      ? t("queue-action-messages.upNextBoostIsLocked")
+      : t("queue-action-messages.alreadyQueuedInSpotifyBoostIsLocked");
   }
-  if (item.isBoosted) return "Already boosted";
-  if (boostsLeft === 0) return "No boosts left";
-  return "Can't boost this song";
+  if (item.isBoosted) return t("queue-action-messages.alreadyBoosted");
+  if (boostsLeft === 0) return t("queue-action-messages.noBoostsLeft");
+  return t("queue-action-messages.canTBoostThisSong");
 }
 
 export function upvoteApiMessage(error: unknown): string | null {
   if (!(error instanceof ApiError)) return null;
   switch (error.code) {
     case "NEXT_LOCKED":
-      return error.message.includes("up next")
-        ? "Up next — upvotes are locked"
-        : "Already queued in Spotify — upvotes are locked";
+      return isUpNextError(error)
+        ? t("queue-action-messages.upNextUpvotesAreLocked")
+        : t("queue-action-messages.alreadyQueuedInSpotifyUpvotesAreLocked");
     case "OWN_SONG":
-      return "You can't upvote your own song";
+      return t("queue-action-messages.youCanTUpvoteYourOwnSong");
     case "ALREADY_VOTED":
-      return "You already upvoted this song";
+      return t("queue-action-messages.youAlreadyUpvotedThisSong");
     case "RATE_LIMITED":
       return resolveRateLimitMessage(
         error.message,
-        "You've used all your upvotes.",
+        t("queue-action-messages.youVeUsedAllYourUpvotes"),
       );
     case "PARTY_OFF":
-      return "Party is paused — turn it on to vote";
+      return t("queue-action-messages.partyIsPausedTurnItOnToVote");
     default:
       return null;
   }
@@ -83,18 +84,18 @@ export function downvoteApiMessage(error: unknown): string | null {
   if (!(error instanceof ApiError)) return null;
   switch (error.code) {
     case "NEXT_LOCKED":
-      return "Already queued in Spotify — downvotes are locked";
+      return t("queue-action-messages.alreadyQueuedInSpotifyDownvotesAreLocked");
     case "ALREADY_DOWNVOTED":
-      return "You already downvoted this song";
+      return t("queue-action-messages.youAlreadyDownvotedThisSong");
     case "NOW_PLAYING":
-      return "Can't downvote what's playing now";
+      return t("queue-action-messages.canTDownvoteWhatSPlayingNow");
     case "RATE_LIMITED":
       return resolveRateLimitMessage(
         error.message,
-        "You've used all your downvotes.",
+        t("queue-action-messages.youVeUsedAllYourDownvotes"),
       );
     case "PARTY_OFF":
-      return "Party is paused — turn it on to vote";
+      return t("queue-action-messages.partyIsPausedTurnItOnToVote");
     default:
       return null;
   }
@@ -104,22 +105,22 @@ export function boostApiMessage(error: unknown): string | null {
   if (!(error instanceof ApiError)) return null;
   switch (error.code) {
     case "BOOST_USED":
-      return "No boosts left";
+      return t("queue-action-messages.noBoostsLeft");
     case "RATE_LIMITED":
       return resolveRateLimitMessage(
         error.message,
-        "You've used your boost.",
+        t("queue-action-messages.youVeUsedYourBoost"),
       );
     case "ALREADY_BOOSTED":
-      return "Already boosted";
+      return t("queue-action-messages.alreadyBoosted");
     case "NEXT_LOCKED":
-      return error.message.includes("up next")
-        ? "Up next — boost is locked"
-        : "Already queued in Spotify — boost is locked";
+      return isUpNextError(error)
+        ? t("queue-action-messages.upNextBoostIsLocked")
+        : t("queue-action-messages.alreadyQueuedInSpotifyBoostIsLocked");
     case "PARTY_OFF":
-      return "Party is paused — turn it on to boost";
+      return t("queue-action-messages.partyIsPausedTurnItOnToBoost");
     case "BOOST_CAP":
-      return "Boost limit reached for this party";
+      return t("queue-action-messages.boostLimitReachedForThisParty");
     default:
       return null;
   }

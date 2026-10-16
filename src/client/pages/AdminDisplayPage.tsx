@@ -1,3 +1,5 @@
+import { formatApiError } from "../i18n/errors";
+import { t, useLocale } from "@/client/i18n";
 import * as React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { PartyView, QueueSnapshot } from "@/shared/types";
@@ -18,6 +20,7 @@ interface PartyFull extends PartyView {
 }
 
 export function AdminDisplayPage() {
+  useLocale();
   const [searchParams] = useSearchParams();
   const kiosk = searchParams.get("fullscreen") === "1";
   useAutoFullscreen(kiosk);
@@ -38,7 +41,7 @@ export function AdminDisplayPage() {
         setQueue(null);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
+      setError(e instanceof Error ? formatApiError(e) : t("common.failedToLoad"));
     }
   }, []);
 
@@ -59,11 +62,9 @@ export function AdminDisplayPage() {
     return (
       <div className={`app admin-display-page${kiosk ? " admin-display-page--kiosk" : ""}`}>
         {!kiosk && (
-          <Link to="/admin" className="admin-back-link">
-            ← Back to admin
-          </Link>
+          <Link to="/admin" className="admin-back-link">{t("common.backToAdmin")}</Link>
         )}
-        <p>{error ?? "No active party — create one in admin first."}</p>
+        <p>{error ?? t("adminDisplayPage.noActivePartyCreateOneInAdminFirst")}</p>
       </div>
     );
   }
@@ -71,9 +72,7 @@ export function AdminDisplayPage() {
   return (
     <div className={`app admin-display-page${kiosk ? " admin-display-page--kiosk" : ""}`}>
       {!kiosk && (
-        <Link to="/admin" className="admin-back-link">
-          ← Back to admin
-        </Link>
+        <Link to="/admin" className="admin-back-link">{t("common.backToAdmin")}</Link>
       )}
       {!kiosk && (
         <AdminNav
@@ -83,13 +82,17 @@ export function AdminDisplayPage() {
       )}
 
       <div className="admin-display-layout">
-        <aside className="admin-display-qr-panel" aria-label="Join QR code">
-          <h2 className="admin-display-qr-heading">Join the party</h2>
-          <p className="small admin-display-qr-hint">Scan with your phone camera</p>
+        <aside className="admin-display-qr-panel" aria-label={t("adminDisplayPage.joinQrCode")}>
+          <h2 className="admin-display-qr-heading">
+            {t("adminDisplayPage.joinTheParty")}
+          </h2>
+          <p className="small admin-display-qr-hint">
+            {t("adminDisplayPage.scanWithYourPhoneCamera")}
+          </p>
           <div className="admin-display-qr-wrap">
             <img
               src={`/api/v1/host/parties/${party.id}/qr`}
-              alt="QR code to join party"
+              alt={t("adminDisplayPage.qrCodeToJoinParty")}
               className="admin-display-qr"
             />
           </div>
@@ -111,7 +114,9 @@ export function AdminDisplayPage() {
 
           {laterQueue.length > 0 && (
             <section>
-              <h2>Upcoming</h2>
+              <h2>
+                {t("adminDisplayPage.upcoming")}
+              </h2>
               {laterQueue.map((item) => (
                 <ReadOnlyQueueRow key={item.id} item={item} />
               ))}
@@ -119,7 +124,9 @@ export function AdminDisplayPage() {
           )}
 
           {!queue?.nowPlaying && !upNext && laterQueue.length === 0 && (
-            <div className="banner warn">Add something!</div>
+            <div className="banner warn">
+              {t("common.addSomething")}
+            </div>
           )}
         </div>
       </div>

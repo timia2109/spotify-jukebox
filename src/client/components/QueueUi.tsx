@@ -1,9 +1,8 @@
+import { t, queueStatusLabel, useLocale } from "@/client/i18n";
 import * as React from "react";
 import { queueItemAnchorId } from "@/shared/queue-match";
 import type { SearchQueueBlockReason } from "@/shared/queue-match";
 import type { QueueItemView, TrackInfo } from "@/shared/types";
-import { resolveRateLimitMessage } from "@/shared/rate-limit-messages";
-import { ApiError } from "../http";
 
 export function ThumbsUpIcon({ size = 16 }: { size?: number }) {
   return (
@@ -54,10 +53,13 @@ export function DownvoteCount({ count }: { count: number }) {
 }
 
 export function BoostBadge({ boostedBy }: { boostedBy?: string | null }) {
+  useLocale();
   return (
     <span className="boost-indicator">
-      <span className="boost-badge">Boosted</span>
-      {boostedBy ? <span className="boost-by">by {boostedBy}</span> : null}
+      <span className="boost-badge">
+        {t("queueUi.boosted")}
+      </span>
+      {boostedBy ? <span className="boost-by">{t("queueUi.by", { boostedBy })}</span> : null}
     </span>
   );
 }
@@ -71,6 +73,7 @@ export function BoostButton({
   onClick?: () => void;
   className?: string;
 }) {
+  useLocale();
   return (
     <button
       type="button"
@@ -79,7 +82,7 @@ export function BoostButton({
       disabled={disabled}
       onClick={onClick}
     >
-      Boost
+      {t("common.boost")}
     </button>
   );
 }
@@ -93,6 +96,7 @@ export function TrackVoteStats({
   downvoteCount?: number;
   showDownvotes?: boolean;
 }) {
+  useLocale();
   return (
     <div className="track-vote-stats">
       <UpvoteCount count={upvoteCount} />
@@ -112,6 +116,7 @@ export function TrackTitle({
   boosted?: boolean;
   boostedBy?: string | null;
 }) {
+  useLocale();
   return (
     <h3 className="track-title">
       <span className="track-title-name">{name}</span>
@@ -134,6 +139,7 @@ export function NowPlayingBanner({
   item: QueueItemView;
   highlightedItemId?: string | null;
 }) {
+  useLocale();
   return (
     <div
       id={queueItemAnchorId(item.id)}
@@ -146,7 +152,7 @@ export function NowPlayingBanner({
           <div className="now-playing-art now-playing-art--placeholder" />
         )}
         <div className="now-playing-meta">
-          <strong>Now playing</strong>
+          <strong>{t("queueUi.nowPlaying")}</strong>
           <div className="now-playing-title">
             <span className="track-title-name">{item.trackName}</span>
             {item.isBoosted ? <BoostBadge boostedBy={item.boostedBy} /> : null}
@@ -165,15 +171,18 @@ export function UpNextLockedSection({
   item: QueueItemView;
   highlightedItemId?: string | null;
 }) {
+  useLocale();
   const buffered = item.status === "queued";
   return (
     <section
       id={queueItemAnchorId(item.id)}
       className={`up-next-locked${buffered ? " up-next-locked--buffered" : ""}${item.isBoosted ? " up-next-locked--boosted" : ""}${queueItemHighlightClass(item.id, highlightedItemId)}`}
     >
-      <h2 className="up-next-locked-heading">Up next</h2>
+      <h2 className="up-next-locked-heading">
+        {t("queueUi.upNext")}
+      </h2>
       <p className="small up-next-locked-note">
-        {buffered ? "Locked in Spotify" : "Sending to Spotify…"}
+        {buffered ? t("queueUi.lockedInSpotify") : t("queueUi.sendingToSpotify")}
       </p>
       <div className="track up-next-locked-track">
         {item.albumArtUrl && <img src={item.albumArtUrl} alt="" />}
@@ -211,6 +220,7 @@ export function SearchTrackRow({
   onAdd: () => void;
   onGoToQueue?: (itemId: string) => void;
 }) {
+  useLocale();
   const inQueue = blockedReason != null;
 
   return (
@@ -228,14 +238,14 @@ export function SearchTrackRow({
           className="search-in-queue search-in-queue--link"
           onClick={() => onGoToQueue(queueItemId)}
         >
-          In queue
+          {t("queueUi.inQueue")}
         </button>
       ) : blockedReason === "history" ? (
-        <span className="search-in-queue search-in-queue--history">Already played</span>
+        <span className="search-in-queue search-in-queue--history">
+          {t("queueUi.alreadyPlayed")}
+        </span>
       ) : (
-        <button type="button" disabled={addDisabled} onClick={onAdd}>
-          Add
-        </button>
+        <button type="button" disabled={addDisabled} onClick={onAdd}>{t("queueUi.add")}</button>
       )}
     </div>
   );
@@ -248,6 +258,7 @@ export function SearchNav({
   label: string;
   onBack: () => void;
 }) {
+  useLocale();
   return (
     <nav className="search-nav">
       <button type="button" className="secondary search-nav-back" onClick={onBack}>
@@ -258,6 +269,7 @@ export function SearchNav({
 }
 
 export function ReadOnlyQueueRow({ item }: { item: QueueItemView }) {
+  useLocale();
   return (
     <div
       className={`track card${item.isBoosted ? " track--boosted" : ""}${item.spotifyLocked ? " track--spotify-locked" : ""}`}
@@ -271,7 +283,7 @@ export function ReadOnlyQueueRow({ item }: { item: QueueItemView }) {
         />
         <p className="track-meta-sub">
           {item.artistName} · {item.addedBy}
-          {item.spotifyLocked ? " · Locked in Spotify" : ""}
+          {item.spotifyLocked ? t("queueUi.lockedInSpotify2") : ""}
         </p>
       </div>
       {!item.spotifyLocked && (
@@ -299,6 +311,7 @@ export function AdminQueueRow({
   canMoveDown?: boolean;
   highlightedItemId?: string | null;
 }) {
+  useLocale();
   const locked = item.spotifyLocked || item.status === "queued";
 
   return (
@@ -315,7 +328,7 @@ export function AdminQueueRow({
         />
         <p className="track-meta-sub">
           {item.artistName} · {item.addedBy}
-          {locked ? " · Locked in Spotify" : ""}
+          {locked ? t("queueUi.lockedInSpotify2") : ""}
         </p>
       </div>
       {!locked ? (
@@ -331,12 +344,12 @@ export function AdminQueueRow({
               )
             }
           >
-            Force next
+            {t("queueUi.forceNext")}
           </button>
           <button
             className="secondary"
             disabled={!canMoveUp}
-            title={!canMoveUp ? "Already at top of reorderable queue" : undefined}
+            title={!canMoveUp ? t("queueUi.alreadyAtTopOfReorderableQueue") : undefined}
             onClick={() =>
               void onAction(
                 `/host/parties/${partyId}/queue/${item.id}`,
@@ -350,7 +363,7 @@ export function AdminQueueRow({
           <button
             className="secondary"
             disabled={!canMoveDown}
-            title={!canMoveDown ? "Already at bottom of reorderable queue" : undefined}
+            title={!canMoveDown ? t("queueUi.alreadyAtBottomOfReorderableQueue") : undefined}
             onClick={() =>
               void onAction(
                 `/host/parties/${partyId}/queue/${item.id}`,
@@ -369,7 +382,7 @@ export function AdminQueueRow({
               )
             }
           >
-            Start here
+            {t("queueUi.startHere")}
           </button>
           <button
             className="secondary"
@@ -380,7 +393,7 @@ export function AdminQueueRow({
               )
             }
           >
-            Remove
+            {t("common.remove")}
           </button>
         </div>
       ) : (
@@ -391,18 +404,7 @@ export function AdminQueueRow({
 }
 
 function historyStatusLabel(status: QueueItemView["status"]): string {
-  switch (status) {
-    case "played":
-      return "Played";
-    case "skipped":
-      return "Removed";
-    case "downvoted":
-      return "Downvoted";
-    case "unblocked":
-      return "Unblocked";
-    default:
-      return status;
-  }
+  return queueStatusLabel(status);
 }
 
 export function AdminHistoryRow({
@@ -414,6 +416,7 @@ export function AdminHistoryRow({
   partyId: string;
   onAction: (path: string, method?: string, body?: unknown) => Promise<void>;
 }) {
+  useLocale();
   const canUnblock = item.status === "played" || item.status === "downvoted";
 
   return (
@@ -430,14 +433,14 @@ export function AdminHistoryRow({
           <button
             type="button"
             className="secondary small"
-            title="Allow this track to be added to the queue again"
+            title={t("queueUi.allowThisTrackToBeAddedToThe")}
             onClick={() =>
               void onAction(
                 `/host/parties/${partyId}/history/${item.id}/unblock`,
               )
             }
           >
-            Unblock
+            {t("queueUi.unblock")}
           </button>
         </div>
       )}
@@ -455,6 +458,7 @@ export function SearchFilterChips({
     onClick: () => void;
   }[];
 }) {
+  useLocale();
   return (
     <div className="search-filters">
       {filters.map((f) => (
@@ -472,45 +476,4 @@ export function SearchFilterChips({
   );
 }
 
-export function formatApiError(error: unknown): string {
-  if (!(error instanceof Error)) return "Something went wrong";
-  if (error instanceof ApiError && error.code === "RATE_LIMITED") {
-    return resolveRateLimitMessage(
-      error.message,
-      "You've reached your limit for that action.",
-    );
-  }
-  const msg = error.message;
-  if (
-    msg === "This song is already in the queue" ||
-    msg === "Duplicate song" ||
-    msg.includes("DUPLICATE")
-  ) {
-    return "That song is already in the queue.";
-  }
-  if (msg.includes("Party is off") || msg.includes("PARTY_OFF")) {
-    return "Party is paused — turn it on to add songs.";
-  }
-  if (msg.includes("Display name required")) {
-    return "Enter your name before adding songs.";
-  }
-  if (msg.includes("Could not verify that name")) {
-    return "We couldn't verify that name — pick a different one.";
-  }
-  if (msg.includes("Rate limited") || msg.includes("Search rate limited")) {
-    return resolveRateLimitMessage(
-      msg,
-      "You've reached your limit for that action.",
-    );
-  }
-  if (msg.includes("already queued in Spotify") || msg.includes("NEXT_LOCKED")) {
-    return "That song is already queued in Spotify.";
-  }
-  if (msg.includes("Not your song") || msg.includes("NOT_OWNER")) {
-    return "You can only change your own songs.";
-  }
-  if (msg.includes("Cannot remove now playing") || msg.includes("NOW_PLAYING")) {
-    return "That song is playing right now.";
-  }
-  return msg;
-}
+export { formatApiError } from "../i18n/errors";

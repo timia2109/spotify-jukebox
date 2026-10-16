@@ -1,3 +1,4 @@
+import { t, Trans, getLocale, queueStatusLabel, useLocale } from "@/client/i18n";
 import type { GuestAdminView } from "@/shared/types";
 import { formatLastSeen } from "../utils/formatLastSeen";
 
@@ -12,53 +13,62 @@ export function GuestAdminList({
   onResetLimits: (guest: GuestAdminView) => void;
   onClearAll: () => void;
 }) {
+  useLocale();
   return (
     <>
       <div className="guest-admin-header">
-        <h2>Guests</h2>
+        <h2>
+          {t("common.guests")}
+        </h2>
         {guests.length > 0 ? (
-          <button className="secondary" onClick={onClearAll}>
-            Clear all guests
-          </button>
+          <button className="secondary" onClick={onClearAll}>{t("guestAdminList.clearAllGuests")}</button>
         ) : null}
       </div>
       {guests.length > 0 ? (
         <p className="small guest-admin-hint">
-          Load tests create new sessions each run — use Clear all guests before
-          re-running simulations to avoid duplicate entries.
+          {t("guestAdminList.loadTestsCreateNewSessionsEachRunUse")}
         </p>
       ) : null}
       {guests.length === 0 ? (
-        <p className="small">No guests yet. Share the join link to get started.</p>
+        <p className="small">
+          {t("guestAdminList.noGuestsYetShareTheJoinLinkTo")}
+        </p>
       ) : (
         guests.map((guest) => (
           <div key={guest.id} className="guest-admin-row">
             <div className="guest-admin-main">
               <div className="guest-admin-name">
-                {guest.displayName ?? "Anonymous"}
+                {guest.displayName ?? t("guestAdminList.anonymous")}
                 {guest.disabled ? (
                   <span className="guest-admin-badge guest-admin-badge--banned">
-                    Banned
+                    {t("guestAdminList.banned")}
                   </span>
                 ) : null}
               </div>
               <div className="small guest-admin-meta">
-                Last seen {formatLastSeen(guest.lastSeenAt)} · Joined{" "}
-                {new Date(guest.createdAt).toLocaleDateString()}
-                {guest.lastIp ? (
-                  <>
-                    {" "}
-                    · IP{" "}
-                    <span className="guest-admin-ip">{guest.lastIp}</span>
-                  </>
-                ) : null}
+                <Trans
+                  message="guestAdminList.lastSeenJoined"
+                  values={{
+                    lastSeenAt: formatLastSeen(guest.lastSeenAt),
+                    toLocaleDateString: new Date(guest.createdAt).toLocaleDateString(getLocale()),
+                    span: guest.lastIp ? (
+                      <><Trans message="guestAdminList.ip" values={{ span: <span className="guest-admin-ip">{guest.lastIp}</span> }} /></>
+                    ) : null,
+                  }}
+                />
               </div>
               <div className="guest-admin-stats">
-                <span>{guest.songsAdded.length} added</span>
-                <span>{guest.upvoteCount} upvotes</span>
-                <span>{guest.downvoteCount} downvotes</span>
                 <span>
-                  {guest.boostCount} boost{guest.boostCount === 1 ? "" : "s"}
+                  {t("guestAdminList.added", { length: guest.songsAdded.length })}
+                </span>
+                <span>
+                  {t("guestAdminList.upvotes", { count: guest.upvoteCount })}
+                </span>
+                <span>
+                  {t("guestAdminList.downvotes", { count: guest.downvoteCount })}
+                </span>
+                <span>
+                  {t("guestAdminList.boost", { count: guest.boostCount })}
                 </span>
               </div>
               {guest.songsAdded.length > 0 ? (
@@ -66,12 +76,14 @@ export function GuestAdminList({
                   {guest.songsAdded.map((song) => (
                     <li key={`${song.addedAt}-${song.trackName}`}>
                       {song.trackName} — {song.artistName}
-                      <span className="guest-song-status">{song.status}</span>
+                      <span className="guest-song-status">{queueStatusLabel(song.status)}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="small guest-admin-no-songs">No songs added</p>
+                <p className="small guest-admin-no-songs">
+                  {t("guestAdminList.noSongsAdded")}
+                </p>
               )}
             </div>
             <div className="guest-admin-actions">
@@ -79,13 +91,13 @@ export function GuestAdminList({
                 className="secondary"
                 onClick={() => onResetLimits(guest)}
               >
-                Reset limits
+                {t("guestAdminList.resetLimits")}
               </button>
               <button
                 className="secondary"
                 onClick={() => onBanToggle(guest)}
               >
-                {guest.disabled ? "Unban" : "Ban"}
+                {guest.disabled ? t("guestAdminList.unban") : t("guestAdminList.ban")}
               </button>
             </div>
           </div>

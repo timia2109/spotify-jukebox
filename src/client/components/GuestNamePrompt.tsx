@@ -1,3 +1,5 @@
+import { formatApiError } from "../i18n/errors";
+import { t, Trans, useLocale } from "@/client/i18n";
 import * as React from "react";
 import type { DisplayNameConflictKind } from "@/shared/dedup";
 import type { GuestMe } from "@/shared/types";
@@ -11,6 +13,7 @@ export function GuestNamePrompt({
   slug: string;
   onSaved: (profile: GuestMe) => void;
 }) {
+  useLocale();
   const [name, setName] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [nameTaken, setNameTaken] = React.useState<{
@@ -55,7 +58,7 @@ export function GuestNamePrompt({
         });
         setError(null);
       } else {
-        setError(e instanceof Error ? e.message : "Could not save name");
+        setError(e instanceof Error ? formatApiError(e) : t("guestNamePrompt.couldNotSaveName"));
         setNameTaken(null);
       }
     } finally {
@@ -66,16 +69,22 @@ export function GuestNamePrompt({
   return (
     <div className="app guest-name-gate">
       <div className="card guest-name-card">
-        <h1>Welcome</h1>
+        <h1>
+          {t("guestNamePrompt.welcome")}
+        </h1>
         <p className="guest-name-intro">
-          Enter your name to join the party queue.
+          {t("guestNamePrompt.enterYourNameToJoinThePartyQueue")}
         </p>
 
         {nameTaken ? (
           <div className="guest-name-taken">
             <p>
-              Someone named <strong>{nameTaken.existingName}</strong> is already
-              here. Is that you?
+              <Trans
+                message="guestNamePrompt.someoneNamedIsAlreadyHereIsThatYou"
+                values={{
+                  name: <strong>{nameTaken.existingName}</strong>,
+                }}
+              />
             </p>
             <div className="guest-name-taken-actions">
               <button
@@ -83,7 +92,7 @@ export function GuestNamePrompt({
                 disabled={saving}
                 onClick={() => void saveName({ confirmReclaim: true })}
               >
-                Yes, that&apos;s me
+                {t("guestNamePrompt.yesThatSMe")}
               </button>
               <button
                 type="button"
@@ -99,21 +108,19 @@ export function GuestNamePrompt({
                 }}
               >
                 {nameTaken.matchKind === "fuzzy"
-                  ? "No, that's not me"
-                  : "No, pick another name"}
+                  ? t("guestNamePrompt.noThatSNotMe")
+                  : t("guestNamePrompt.noPickAnotherName")}
               </button>
             </div>
           </div>
         ) : (
           <>
-            <label className="guest-name-label" htmlFor="guest-display-name">
-              Your name
-            </label>
+            <label className="guest-name-label" htmlFor="guest-display-name">{t("guestNamePrompt.yourName")}</label>
             <input
               id="guest-display-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Display name"
+              placeholder={t("guestNamePrompt.displayName")}
               autoFocus
               onKeyDown={(e) => e.key === "Enter" && void saveName()}
             />
@@ -123,7 +130,7 @@ export function GuestNamePrompt({
                 onClick={() => void saveName()}
                 disabled={!name.trim() || saving}
               >
-                {saving ? "Saving…" : "Continue"}
+                {saving ? t("common.saving") : t("guestNamePrompt.continue")}
               </button>
             </div>
           </>

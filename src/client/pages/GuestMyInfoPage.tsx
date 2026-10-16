@@ -1,3 +1,4 @@
+import { t, Trans, queueStatusLabel, queuePositionLabel, useLocale } from "@/client/i18n";
 import * as React from "react";
 import { Link, useParams } from "react-router-dom";
 import type { GuestInfoResponse, PartyView } from "@/shared/types";
@@ -20,21 +21,11 @@ import { boostApiMessage } from "../utils/queue-action-messages";
 import { api, joinParty } from "../http";
 
 function statusLabel(status: string): string {
-  switch (status) {
-    case "played":
-      return "Played";
-    case "skipped":
-      return "Removed";
-    case "downvoted":
-      return "Downvoted";
-    case "unblocked":
-      return "Unblocked";
-    default:
-      return status;
-  }
+  return queueStatusLabel(status);
 }
 
 export function GuestMyInfoPage() {
+  useLocale();
   const { slug = "" } = useParams<{ slug: string }>();
   const [joined, setJoined] = React.useState(false);
   const [me, setMe] = React.useState<{ displayName: string | null } | null>(
@@ -68,7 +59,7 @@ export function GuestMyInfoPage() {
         setMe(profile);
         await load();
       } catch {
-        setJoinError("Could not join party");
+        setJoinError(t("guestMyInfoPage.couldNotJoinParty"));
       }
     })();
   }, [slug, load]);
@@ -87,7 +78,7 @@ export function GuestMyInfoPage() {
         method: "POST",
         body: "{}",
       });
-      showPopup("Song boosted", "success");
+      showPopup(t("guestMyInfoPage.songBoosted"), "success");
       await load();
     } catch (e) {
       const message = boostApiMessage(e);
@@ -101,7 +92,7 @@ export function GuestMyInfoPage() {
         method: "POST",
         body: "{}",
       });
-      showPopup("Boost removed", "success");
+      showPopup(t("guestMyInfoPage.boostRemoved"), "success");
       await load();
     } catch (e) {
       showPopup(formatApiError(e), "error");
@@ -109,10 +100,10 @@ export function GuestMyInfoPage() {
   }
 
   async function removeSong(itemId: string, trackName: string) {
-    if (!confirm(`Remove “${trackName}” from the queue?`)) return;
+    if (!confirm(t("guestMyInfoPage.removeFromTheQueue", { trackName }))) return;
     try {
       await api(`/parties/${slug}/me/songs/${itemId}`, { method: "DELETE" });
-      showPopup(`Removed “${trackName}”`, "success");
+      showPopup(t("guestMyInfoPage.removed", { trackName }), "success");
       await load();
     } catch (e) {
       showPopup(formatApiError(e), "error");
@@ -149,7 +140,7 @@ export function GuestMyInfoPage() {
               </h3>
               <p>
                 {song.artistName}
-                {title === "Played" || title === "Downvoted"
+                {song.status === "played" || song.status === "downvoted"
                   ? ` · ${statusLabel(song.status)}`
                   : null}
               </p>
@@ -163,7 +154,9 @@ export function GuestMyInfoPage() {
   if (!joined) {
     return (
       <div className="app">
-        <p>Joining party…</p>
+        <p>
+          {t("common.joiningParty")}
+        </p>
         {joinError && <p className="error">{joinError}</p>}
       </div>
     );
@@ -183,13 +176,15 @@ export function GuestMyInfoPage() {
 
   return (
     <div className="app guest-my-info-page">
-      <h1>{party?.name ?? "Jukebox"}</h1>
+      <h1>{party?.name ?? t("common.jukebox")}</h1>
       <p className="guest-info-display-name">{info?.displayName ?? me.displayName}</p>
 
       <GuestNav slug={slug} activeSongCount={info?.active.length ?? 0} />
 
       {partyOff && (
-        <div className="banner off">Party is paused — view only.</div>
+        <div className="banner off">
+          {t("guestMyInfoPage.partyIsPausedViewOnly")}
+        </div>
       )}
 
       {info && (
@@ -200,12 +195,18 @@ export function GuestMyInfoPage() {
       )}
 
       <div className="card">
-        <h2>My songs</h2>
+        <h2>
+          {t("guestMyInfoPage.mySongs")}
+        </h2>
         <p className="small guest-my-songs-intro">
-          Songs you added to the party queue.
-          {info?.boostUsed
-            ? " No boosts left in your current window."
-            : ` You have ${info?.boostsLeft ?? 0} boost${info?.boostsLeft === 1 ? "" : "s"} left.`}
+          <Trans
+            message="guestMyInfoPage.songsYouAddedToThePartyQueue"
+            values={{
+              boostsLeft: info?.boostUsed
+              ? t("guestMyInfoPage.noBoostsLeftInYourCurrentWindow")
+              : t("guestMyInfoPage.youHaveBoostLeft", { count: info?.boostsLeft ?? 0 }),
+            }}
+          />
         </p>
 
         {info?.active.length === 0 &&
@@ -213,8 +214,12 @@ export function GuestMyInfoPage() {
         playedHistory.length === 0 &&
         downvotedHistory.length === 0 ? (
           <p className="guest-my-songs-empty">
-            You haven&apos;t added any songs yet.{" "}
-            <Link to={`/p/${slug}`}>Search the queue</Link>
+            <Trans
+              message="guestMyInfoPage.youHavenTAddedAnySongsYet"
+              values={{
+                searchLink: <Link to={`/p/${slug}`}>{t("guestMyInfoPage.searchTheQueue")}</Link>,
+              }}
+            />
           </p>
         ) : null}
 
@@ -235,7 +240,7 @@ export function GuestMyInfoPage() {
                 <DownvoteCount count={song.downvoteCount} />
               </p>
               {song.queuePosition && (
-                <p className="guest-my-song-position">{song.queuePosition}</p>
+                <p className="guest-my-song-position">{queuePositionLabel(song.queuePosition)}</p>
               )}
             </div>
             <div className="actions">
@@ -251,7 +256,7 @@ export function GuestMyInfoPage() {
                   disabled={!canMutate}
                   onClick={() => void unboost(song.id)}
                 >
-                  Remove boost
+                  {t("guestMyInfoPage.removeBoost")}
                 </button>
               )}
               {song.canRemove && (
@@ -260,16 +265,16 @@ export function GuestMyInfoPage() {
                   disabled={!canMutate}
                   onClick={() => void removeSong(song.id, song.trackName)}
                 >
-                  Remove
+                  {t("common.remove")}
                 </button>
               )}
             </div>
           </div>
         ))}
 
-        {renderHistorySection("Removed", removedHistory)}
-        {renderHistorySection("Played", playedHistory)}
-        {renderHistorySection("Downvoted", downvotedHistory)}
+        {renderHistorySection(t("common.removed"), removedHistory)}
+        {renderHistorySection(t("common.played"), playedHistory)}
+        {renderHistorySection(t("common.downvoted"), downvotedHistory)}
       </div>
       <PopupHost />
     </div>
